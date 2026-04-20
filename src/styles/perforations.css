@@ -1,0 +1,144 @@
+/* ============================================================
+   FILM PERFORATION STRIPS
+   Left and right edge strips that simulate a physical film
+   strip being pulled through a projector gate.
+
+   SCROLL BEHAVIOR
+   ---------------
+   JavaScript sets --scroll-y on :root every animation frame.
+   The perforation background-position reads that value so the
+   holes appear to travel upward at the same speed the user
+   scrolls downward — mirroring the film-strip-through-gate
+   metaphor exactly.
+
+   MOTION BLUR
+   -----------
+   When the user scrolls fast, JS adds .is-fast-scroll to
+   <body>. The strips gain filter: blur(1.5px) in the Y axis
+   only (via SVG filter on the element — CSS blur is isotropic,
+   so we approximate with a small uniform blur).
+
+   FRAME LINES
+   -----------
+   .frame-line utility class renders a 1px horizontal rule
+   across the full content width at section boundaries.
+   ============================================================ */
+
+/* ------------------------------------------------------------------
+   Strip shared base
+   ------------------------------------------------------------------ */
+
+.film-strip {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: var(--perf-strip-width);
+  z-index: var(--z-perforations);
+  pointer-events: none;
+
+  /* Strip background — same as page bg so it blends */
+  background-color: var(--color-bg);
+
+  /* The perforation holes are drawn as a repeating SVG background.
+     Each tile is one hole + gap. The hole is a rounded rect
+     centred horizontally in the strip, filled with pure black.   */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='34'%3E%3Crect x='13' y='7' width='14' height='20' rx='3' ry='3' fill='%23000000'/%3E%3C/svg%3E");
+  background-repeat: repeat-y;
+  background-size: var(--perf-strip-width) var(--perf-pattern-height);
+
+  /* Scroll the pattern upward as --scroll-y increases.
+     background-position-y is negated: scrolling down (positive
+     scroll-y) moves the background up (negative y offset).       */
+  background-position-x: center;
+  background-position-y: calc(var(--scroll-y) * -1);
+
+  /* Smooth transition — none needed here; JS drives it every RAF */
+  will-change: background-position;
+}
+
+/* ------------------------------------------------------------------
+   Left strip — border on its right edge
+   ------------------------------------------------------------------ */
+
+.film-strip--left {
+  left: 0;
+  border-right: var(--perf-border);
+}
+
+/* ------------------------------------------------------------------
+   Right strip — border on its left edge
+   ------------------------------------------------------------------ */
+
+.film-strip--right {
+  right: 0;
+  border-left: var(--perf-border);
+}
+
+/* ------------------------------------------------------------------
+   Mobile: narrower strip, smaller hole SVG
+   ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .film-strip {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='30'%3E%3Crect x='7' y='7' width='10' height='16' rx='3' ry='3' fill='%23000000'/%3E%3C/svg%3E");
+    background-size: var(--perf-strip-width) var(--perf-pattern-height);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Fast-scroll motion blur
+   Added by JS to <body> when scroll velocity exceeds threshold.
+   Only the strips are blurred; content remains sharp.
+   ------------------------------------------------------------------ */
+
+.is-fast-scroll .film-strip {
+  filter: blur(1.5px);
+  /* Blur the strip while keeping it visible */
+  transition: filter 80ms linear;
+}
+
+/* Remove blur when scrolling slows */
+.film-strip {
+  transition: filter 200ms ease-out;
+}
+
+/* ------------------------------------------------------------------
+   Content area offset
+   Prevents page content from sliding under the strips.
+   Applied to the main content wrapper rendered in layout.tsx.
+   ------------------------------------------------------------------ */
+
+.film-content {
+  margin-left: var(--perf-strip-width);
+  margin-right: var(--perf-strip-width);
+  min-height: 100%;
+}
+
+/* ------------------------------------------------------------------
+   Frame line — horizontal rule between major sections.
+   Place a <div class="frame-line"> between section elements.
+   ------------------------------------------------------------------ */
+
+.frame-line {
+  display: block;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-border);
+  opacity: 0.6;
+  /* Spans only the content area, not under the strips */
+  margin-left: 0;
+  margin-right: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Reduced-motion: keep strips visible but disable scroll animation.
+   Content will still offset correctly; strips just won't scroll.
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .film-strip {
+    background-position-y: 0px;
+    will-change: auto;
+  }
+}

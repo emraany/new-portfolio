@@ -1,0 +1,141 @@
+/* ============================================================
+   FILM PORTFOLIO — DESIGN SYSTEM VARIABLES
+   Single source of truth. All values derived from CLAUDE.md.
+   No one-off hex codes. Never reference colors inline.
+   ============================================================ */
+
+:root {
+  /* ----------------------------------------------------------
+     COLOR PALETTE
+     ---------------------------------------------------------- */
+
+  /* Backgrounds */
+  --color-bg:              #0a0a0a;  /* near-black, slight warmth */
+  --color-surface:         #141414;  /* elevated panels, cards, modals */
+  --color-border:          #2a2a2a;  /* subtle separators, card edges */
+
+  /* Text */
+  --color-text-primary:    #e8e4dc;  /* warm off-white — projector light */
+  --color-text-secondary:  #8a8680;  /* warm gray — metadata, timestamps */
+  --color-text-muted:      #4a4641;  /* dim — ambient background text */
+
+  /* Accents */
+  --color-accent:          #c8a96e;  /* warm amber/gold — aged celluloid */
+  --color-accent-primary:  #c8a96e;  /* alias kept for clarity */
+  --color-accent-red:      #8b1a1a;  /* deep red — intermission, badges */
+  --color-accent-secondary:#8b1a1a;  /* alias */
+
+  /* Credits roll exception (not used outside that section) */
+  --color-credits-bg:      #000000;
+  --color-credits-text:    #ffffff;
+
+  /* Perforation hole colour — pure black inside the strip */
+  --color-perf-hole:       #000000;
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------------------------- */
+
+  /* Font families — values injected by next/font in layout.tsx */
+  --font-display: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-body:    var(--font-inter),    'Inter', system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains),'JetBrains Mono', 'Courier New', monospace;
+
+  /* Type scale (rem) */
+  --text-xs:   0.75rem;   /*  12px */
+  --text-sm:   0.8125rem; /*  13px */
+  --text-base: 1rem;      /*  16px */
+  --text-lg:   1.125rem;  /*  18px */
+  --text-xl:   1.3125rem; /*  21px */
+  --text-2xl:  1.625rem;  /*  26px */
+  --text-3xl:  2.625rem;  /*  42px */
+  --text-4xl:  4.5rem;    /*  72px */
+  --text-huge: 17.5rem;   /* 280px — ambient background type */
+
+  /* Type settings */
+  --tracking-tight:  -0.02em; /* large headlines */
+  --tracking-wide:    0.15em; /* UI labels, nav, buttons */
+  --leading-body:     1.6;    /* prose */
+  --leading-tight:    1.2;
+
+  /* ----------------------------------------------------------
+     SPACING SCALE (base-8)
+     ---------------------------------------------------------- */
+
+  --space-1:   0.25rem;  /*  4px */
+  --space-2:   0.5rem;   /*  8px */
+  --space-3:   0.75rem;  /* 12px */
+  --space-4:   1rem;     /* 16px */
+  --space-5:   1.25rem;  /* 20px */
+  --space-6:   1.5rem;   /* 24px */
+  --space-8:   2rem;     /* 32px */
+  --space-10:  2.5rem;   /* 40px */
+  --space-12:  3rem;     /* 48px */
+  --space-16:  4rem;     /* 64px */
+  --space-20:  5rem;     /* 80px */
+  --space-24:  6rem;     /* 96px */
+
+  /* ----------------------------------------------------------
+     PERFORATION GEOMETRY
+     ---------------------------------------------------------- */
+
+  --perf-strip-width:     40px;   /* desktop */
+  --perf-hole-height:     20px;
+  --perf-hole-width:      14px;
+  --perf-hole-radius:     3px;
+  --perf-gap:             14px;   /* vertical gap between holes */
+  --perf-pattern-height:  34px;   /* hole-height + gap = one repeat unit */
+  --perf-border:          1px solid var(--color-border);
+
+  /* Updated by JavaScript on every scroll event */
+  --scroll-y: 0px;
+
+  /* ----------------------------------------------------------
+     Z-INDEX LAYERS
+     ---------------------------------------------------------- */
+
+  --z-base:         0;
+  --z-content:      10;
+  --z-perforations: 20;
+  --z-grain:        30;
+  --z-nav:          40;
+  --z-frame-counter:45;
+  --z-modal:        50;
+  --z-cursor:       60;
+  --z-intro:        70;
+
+  /* ----------------------------------------------------------
+     TRANSITION TIMING
+     ---------------------------------------------------------- */
+
+  --ease-film:    cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-snap:    cubic-bezier(0.4,  0,   0.2,  1);
+  --ease-develop: cubic-bezier(0.4,  0,   0.6,  1); /* darkroom reveal */
+
+  --duration-fast:   150ms;
+  --duration-base:   300ms;
+  --duration-slow:   600ms;
+  --duration-develop:400ms;
+
+  /* ----------------------------------------------------------
+     DARKROOM DEVELOP HOVER (image hover params)
+     ---------------------------------------------------------- */
+
+  --develop-saturate-default:   70%;   /* slightly desaturated */
+  --develop-brightness-default: 0.85;
+  --develop-saturate-hover:     100%;
+  --develop-brightness-hover:   1;
+}
+
+/* ------------------------------------------------------------------
+   MOBILE OVERRIDES
+   ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  :root {
+    --perf-strip-width: 24px;
+    --perf-hole-width:  10px;
+    --perf-hole-height: 16px;
+    --perf-pattern-height: 30px;
+  }
+}

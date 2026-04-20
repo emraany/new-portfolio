@@ -1,26 +1,158 @@
+/* ============================================================
+   GLOBAL BASE STYLES
+   Imports all design-system partials, then sets the page
+   foundation. No component styles live here.
+   ============================================================ */
+
+/* Tailwind base utilities */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design-system partials — order matters */
+@import "../styles/variables.css";
+@import "../styles/grain.css";
+@import "../styles/perforations.css";
+
+/* ------------------------------------------------------------------
+   Box-model reset
+   ------------------------------------------------------------------ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ------------------------------------------------------------------
+   Root / HTML
+   ------------------------------------------------------------------ */
+
+html {
+  height: 100%;
+  scroll-behavior: smooth;
+  /* Thin amber scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent) var(--color-surface);
+  /* Consistent text rendering */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* WebKit scrollbar styling */
+html::-webkit-scrollbar {
+  width: 6px;
 }
+
+html::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+html::-webkit-scrollbar-thumb {
+  background-color: var(--color-accent);
+  border-radius: 3px;
+  border: 1px solid var(--color-surface);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-primary);
+}
+
+/* ------------------------------------------------------------------
+   Body
+   ------------------------------------------------------------------ */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  /* Crisp, warm anti-aliasing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow from perforation strips */
+  overflow-x: hidden;
+}
+
+/* ------------------------------------------------------------------
+   Text selection
+   ------------------------------------------------------------------ */
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+::-moz-selection {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* ------------------------------------------------------------------
+   Focus ring — amber reticle color
+   ------------------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------
+   Typography defaults
+   ------------------------------------------------------------------ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+p {
+  line-height: var(--leading-body);
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+/* ------------------------------------------------------------------
+   Images & media
+   ------------------------------------------------------------------ */
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  /* Lazy-load attribute honoured by default */
+}
+
+/* ------------------------------------------------------------------
+   Links — bare reset; components style their own links
+   ------------------------------------------------------------------ */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------------------
+   Tailwind theme bridge
+   Exposes our CSS vars to Tailwind's @theme inline system
+   so utilities like text-[--color-accent] work.
+   ------------------------------------------------------------------ */
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --font-sans:        var(--font-body);
+  --font-mono:        var(--font-mono);
+  --font-display:     var(--font-display);
 }
