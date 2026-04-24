@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IrisClose } from '../transitions/iris';
+import { projects } from '@/data/projects';
 
 /**
  * CreditsRoll
  *
  * Full-viewport end credits in pure black/white.
- * Auto-scrolls at ~60px/second. User can scroll manually.
+ * Auto-scrolls at ~60px/second. User can scroll manually (pauses 1.5s).
  * IrisClose triggers when FIN reaches viewport center.
  * After IrisClose + 3s black → [ ROLL CREDITS AGAIN ] button.
  *
@@ -27,58 +28,58 @@ interface CreditBlock {
   text?: string;
 }
 
-const CREDITS_CONTENT: CreditBlock[] = [
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'label', text: 'A EMRAAN YUSUF PRODUCTION' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'divider' },
-  { type: 'spacer' },
-  { type: 'label', text: 'Written and Directed by' },
-  { type: 'spacer' },
-  { type: 'heading', text: 'EMRAAN YUSUF' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'divider' },
-  { type: 'spacer' },
-  { type: 'label', text: 'Starring' },
-  { type: 'spacer' },
-  { type: 'name', text: 'CONFLICT COORDINATE' },
-  { type: 'name', text: 'NEURAL CITATION NETWORK' },
-  { type: 'name', text: 'PORTFOLIO SITE' },
-  { type: 'name', text: 'MIRA AI' },
-  { type: 'name', text: 'BEAT LAB' },
-  { type: 'name', text: 'DATAVIZ DASHBOARD' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'divider' },
-  { type: 'spacer' },
-  { type: 'label', text: 'Technical Direction' },
-  { type: 'spacer' },
-  { type: 'name', text: 'TYPESCRIPT · PYTHON · REACT' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'divider' },
-  { type: 'spacer' },
-  { type: 'label', text: 'Special Acknowledgments' },
-  { type: 'spacer' },
-  // TODO: Fill in special acknowledgments
-  { type: 'name', text: '— — —' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'divider' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'fin' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-  { type: 'spacer' },
-];
+function buildCreditsContent(): CreditBlock[] {
+  const projectNames = projects.map((p) => p.title.toUpperCase());
 
+  return [
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'label', text: 'A EMRAAN YUSUF PRODUCTION' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'divider' },
+    { type: 'spacer' },
+    { type: 'label', text: 'Written and Directed by' },
+    { type: 'spacer' },
+    { type: 'heading', text: 'EMRAAN YUSUF' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'divider' },
+    { type: 'spacer' },
+    { type: 'label', text: 'Starring' },
+    { type: 'spacer' },
+    ...projectNames.map((title): CreditBlock => ({ type: 'name', text: title })),
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'divider' },
+    { type: 'spacer' },
+    { type: 'label', text: 'Technical Direction' },
+    { type: 'spacer' },
+    { type: 'name', text: 'TYPESCRIPT · PYTHON · REACT' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'divider' },
+    { type: 'spacer' },
+    { type: 'label', text: 'Special Thanks' },
+    { type: 'spacer' },
+    // TODO: Emraan — fill in names here
+    { type: 'name', text: '— — —' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'divider' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'fin' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+    { type: 'spacer' },
+  ];
+}
+
+const CREDITS_CONTENT: CreditBlock[] = buildCreditsContent();
 const SCROLL_SPEED = 60; // px per second
 
 export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) {
@@ -91,7 +92,8 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
   const scrollPosRef = useRef(0);
   const lastTimeRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
-  const isScrollingRef = useRef(true);
+  const isAutoScrollingRef = useRef(true);
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stageRef = useRef<CreditsStage>('scrolling');
   const onCompleteRef = useRef(onComplete);
 
@@ -104,7 +106,12 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
     setStage('scrolling');
     setShowRollAgain(false);
     scrollPosRef.current = 0;
-    isScrollingRef.current = true;
+    isAutoScrollingRef.current = true;
+    lastTimeRef.current = 0;
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
@@ -124,11 +131,11 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
       const delta = (timestamp - lastTimeRef.current) / 1000; // seconds
       lastTimeRef.current = timestamp;
 
-      if (isScrollingRef.current) {
+      if (isAutoScrollingRef.current) {
         scrollPosRef.current += SCROLL_SPEED * delta;
         containerRef.current.scrollTop = scrollPosRef.current;
       } else {
-        // User is manually scrolling — sync our position
+        // User is manually scrolling — sync our tracked position
         scrollPosRef.current = containerRef.current.scrollTop;
       }
 
@@ -144,38 +151,45 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
     };
   }, [isActive]);
 
-  // Handle manual scroll — pause auto-scroll temporarily
+  // Handle manual scroll — pause auto-scroll for 1.5s, then resume
   const handleScroll = useCallback(() => {
     if (stageRef.current !== 'scrolling') return;
-    isScrollingRef.current = false;
-    // Resume auto-scroll after 1.5 seconds of no manual scroll
-    const timer = setTimeout(() => {
-      isScrollingRef.current = true;
+
+    // Pause auto-scroll
+    isAutoScrollingRef.current = false;
+
+    // Clear any pending resume timer
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+    }
+
+    // Resume auto-scroll after 1.5s of no manual scroll input
+    pauseTimerRef.current = setTimeout(() => {
+      isAutoScrollingRef.current = true;
       if (containerRef.current) {
         scrollPosRef.current = containerRef.current.scrollTop;
       }
+      pauseTimerRef.current = null;
     }, 1500);
-    return () => clearTimeout(timer);
   }, []);
 
-  // IntersectionObserver on FIN element to trigger iris close
+  // IntersectionObserver on FIN element to trigger iris close when FIN hits center
   useEffect(() => {
     if (!isActive || !finRef.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          // When FIN is visible in the center of the viewport
           if (entry.isIntersecting && stageRef.current === 'scrolling') {
-            // Stop scrolling
-            isScrollingRef.current = false;
-            cancelAnimationFrame(rafRef.current);
+            isAutoScrollingRef.current = false;
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
             setStage('iris-close');
           }
         });
       },
       {
-        rootMargin: '-40% 0px -40% 0px', // center 20% of viewport
+        // Center 20% of viewport — fires when FIN enters the middle band
+        rootMargin: '-40% 0px -40% 0px',
         threshold: 0.1,
       }
     );
@@ -195,18 +209,24 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
 
   const handleSkipToEnd = useCallback(() => {
     if (!containerRef.current || !contentRef.current) return;
-    const maxScroll = contentRef.current.offsetHeight;
+    // Scroll to the bottom of the content
+    const maxScroll =
+      contentRef.current.scrollHeight ?? contentRef.current.offsetHeight;
     containerRef.current.scrollTop = maxScroll;
     scrollPosRef.current = maxScroll;
-    isScrollingRef.current = false;
+    isAutoScrollingRef.current = false;
   }, []);
 
   const handleRollAgain = useCallback(() => {
     setStage('scrolling');
     setShowRollAgain(false);
     scrollPosRef.current = 0;
-    isScrollingRef.current = true;
+    isAutoScrollingRef.current = true;
     lastTimeRef.current = 0;
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+      pauseTimerRef.current = null;
+    }
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
@@ -220,8 +240,9 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
         position: 'fixed',
         inset: 0,
         backgroundColor: 'var(--color-credits-bg)',
+        // Cast needed: CSS custom property string is valid for zIndex at runtime
         zIndex: 'var(--z-intro)' as unknown as number,
-        // Isolated stacking context — above grain layer, no grain here
+        // Isolated stacking context — above grain layer, no grain rendered here
         isolation: 'isolate',
       }}
     >
@@ -284,14 +305,14 @@ export default function CreditsRoll({ isActive, onComplete }: CreditsRollProps) 
             [ SKIP TO END ]
           </button>
 
-          {/* IrisClose when FIN hits center */}
+          {/* IrisClose fires when FIN hits viewport center */}
           {stage === 'iris-close' && (
             <IrisClose onComplete={handleIrisCloseComplete} duration={800} />
           )}
         </>
       )}
 
-      {/* Post-credits black screen */}
+      {/* Post-credits: total black, then Roll Again button */}
       {(stage === 'black' || stage === 'ended') && (
         <div
           style={{
@@ -347,6 +368,7 @@ function CreditLine({ block, finRef }: CreditLineProps) {
     textAlign: 'center',
     width: '100%',
     maxWidth: '600px',
+    margin: 0,
   };
 
   if (block.type === 'spacer') {
