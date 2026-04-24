@@ -4,6 +4,10 @@ import './globals.css';
 import FilmGrain from '@/components/persistent/film-grain';
 import FilmPerforations from '@/components/persistent/film-perforations';
 import ScrollDriver from '@/components/persistent/scroll-driver';
+import ProjectorCursor from '@/components/persistent/projector-cursor';
+import FrameCounter from '@/components/persistent/frame-counter';
+import TicketNav from '@/components/persistent/ticket-nav';
+import AmbientType from '@/components/persistent/ambient-type';
 
 /* ----------------------------------------------------------------
    Google Fonts — loaded at build time via next/font.
@@ -77,6 +81,18 @@ export default function RootLayout({
 
         {/* Drives --scroll-y CSS var and fast-scroll class on body */}
         <ScrollDriver />
+
+        {/* Custom focus-reticle cursor with amber glow — desktop only */}
+        <ProjectorCursor />
+
+        {/* Section name ghost text — fixed, full-viewport, pointer-events: none */}
+        <AmbientType />
+
+        {/* REEL/frame HUD — top-right, hidden on mobile */}
+        <FrameCounter />
+
+        {/* Pill nav (desktop) / hamburger drawer (mobile) */}
+        <TicketNav />
 
         {/* --------------------------------------------------------
             Content area — inset from the perforation strips.

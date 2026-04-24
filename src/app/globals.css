@@ -156,3 +156,18 @@ a {
   --font-mono:        var(--font-mono);
   --font-display:     var(--font-display);
 }
+
+/* Mobile responsiveness additions */
+@media (max-width: 768px) {
+  /* Scale down huge ambient type */
+  :root {
+    --text-huge: 8rem;
+  }
+
+  /* Ensure sections don't overflow horizontally */
+  section {
+    overflow-x: hidden;
+  }
+
+  /* Poster grids already handle their own breakpoints via inline styles */
+}
