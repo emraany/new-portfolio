@@ -24,5 +24,5 @@ export const top10Films: Top10Film[] = [
   { rank: 7,  title: 'Phantom Thread',             tmdbId: 400617, year: 2017, myRating: 5, posterPath: '/mgeVXLTdqtA5gf0cm0ZVd9GAvsm.jpg' },
   { rank: 8,  title: 'Heat',                       tmdbId: 949,    year: 1995, myRating: 5, posterPath: '/3EaheZ4fRjr7K1WT4A88ENnUT9Q.jpg' },
   { rank: 9, title: 'Thief',                      tmdbId: 11524,  year: 1981, myRating: 5, posterPath: '/jes9bFLaKSu6LrBUIODrtZ7FJkM.jpg' },
-  { rank: 9,  title: 'Eyes Wide Shut',             tmdbId: 345,     year: 1999, myRating: 5, posterPath: '/bYixINmclYNkF64iVRHhp6LE8xn.jpg' },
+  { rank: 10,  title: 'Eyes Wide Shut',             tmdbId: 345,     year: 1999, myRating: 5, posterPath: '/bYixINmclYNkF64iVRHhp6LE8xn.jpg' },
 ];
