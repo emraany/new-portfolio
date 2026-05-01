@@ -239,6 +239,7 @@ export default function Countdown({ onComplete }: CountdownProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.2 }}
             transition={{ duration: 0.15 }}
+            style={{ transformBox: 'fill-box', transformOrigin: '50% 50%' }}
           >
             {currentCount}
           </motion.text>
