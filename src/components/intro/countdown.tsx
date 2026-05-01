@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -12,27 +12,21 @@ import { motion, AnimatePresence } from 'framer-motion';
  * - Large count number in Playfair Display
  * - Focus reticle crosshair overlay
  * - 4 corner bracket marks
- * - Frame-rate brightness flicker
- * - Optional audio beeps via Web Audio API (muted by default)
+ * - Subtle frame-rate brightness flicker
  */
 
 interface CountdownProps {
   onComplete: () => void;
 }
 
-const TOTAL_COUNTS = 5;
+const TOTAL_COUNTS = 3;
 const TICK_COUNT = 60;
-const BEEP_FREQUENCY = 1000; // Hz
-const BEEP_DURATION = 0.08; // seconds
 
 export default function Countdown({ onComplete }: CountdownProps) {
   const [currentCount, setCurrentCount] = useState(TOTAL_COUNTS);
   const [sweepAngle, setSweepAngle] = useState(0);
   const [brightness, setBrightness] = useState(1);
-  const [isMuted, setIsMuted] = useState(true);
-  const [audioReady, setAudioReady] = useState(false);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
   const startTimeRef = useRef<number>(0);
   const animFrameRef = useRef<number>(0);
   const flickerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -42,38 +36,13 @@ export default function Countdown({ onComplete }: CountdownProps) {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
-  // Initialize AudioContext on first user interaction
-  const initAudio = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-      setAudioReady(true);
-    }
-  }, []);
-
-  const playBeep = useCallback(() => {
-    if (isMuted || !audioContextRef.current) return;
-    const ctx = audioContextRef.current;
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    oscillator.frequency.setValueAtTime(BEEP_FREQUENCY, ctx.currentTime);
-    oscillator.type = 'sine';
-    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + BEEP_DURATION);
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + BEEP_DURATION);
-  }, [isMuted]);
-
-  // Frame-rate flicker effect
+  // Subtle frame-rate flicker effect (dim-only; never brighter than 1)
   useEffect(() => {
     flickerIntervalRef.current = setInterval(() => {
-      // Random 1-2 frame brightness flicker
-      const flickerValue = 0.85 + Math.random() * 0.15;
+      const flickerValue = 0.92 + Math.random() * 0.08;
       setBrightness(flickerValue);
-      // Reset after one "frame" (~16ms)
       setTimeout(() => setBrightness(1), 16 + Math.random() * 16);
-    }, 80 + Math.random() * 120);
+    }, 180 + Math.random() * 180);
 
     return () => {
       if (flickerIntervalRef.current) clearInterval(flickerIntervalRef.current);
@@ -104,15 +73,12 @@ export default function Countdown({ onComplete }: CountdownProps) {
 
       if (count !== lastCount) {
         setCurrentCount(count);
-        playBeep();
         lastCount = count;
       }
 
       if (totalProgress < 1) {
         animFrameRef.current = requestAnimationFrame(tick);
       } else {
-        // Final beep and complete
-        playBeep();
         onCompleteRef.current();
       }
     };
@@ -154,47 +120,19 @@ export default function Countdown({ onComplete }: CountdownProps) {
     return `M ${cx} ${cy} L ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 1 ${endX} ${endY} Z`;
   };
 
-  const handleMuteToggle = () => {
-    if (!audioReady) initAudio();
-    setIsMuted(prev => !prev);
-  };
-
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: '#000000',
+        backgroundColor: 'var(--color-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 'var(--z-intro)' as unknown as number,
         filter: `brightness(${brightness})`,
       }}
-      onClick={initAudio}
     >
-      {/* Mute toggle */}
-      <button
-        onClick={(e) => { e.stopPropagation(); handleMuteToggle(); }}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          left: '1rem',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.75rem',
-          color: 'var(--color-accent)',
-          background: 'transparent',
-          border: '1px solid var(--color-accent)',
-          padding: '0.25rem 0.5rem',
-          cursor: 'pointer',
-          letterSpacing: '0.1em',
-          zIndex: 1,
-        }}
-        aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
-      >
-        {isMuted ? '[ AUDIO OFF ]' : '[ AUDIO ON ]'}
-      </button>
-
       {/* Main SMPTE leader SVG */}
       <svg
         viewBox="0 0 320 320"
@@ -290,9 +228,9 @@ export default function Countdown({ onComplete }: CountdownProps) {
           <motion.text
             key={currentCount}
             x="160"
-            y="180"
+            y="160"
             textAnchor="middle"
-            dominantBaseline="middle"
+            dominantBaseline="central"
             fontFamily="var(--font-display)"
             fontSize="120"
             fontWeight="700"

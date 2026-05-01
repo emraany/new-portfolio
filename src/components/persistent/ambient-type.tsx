@@ -8,15 +8,14 @@ import { useScrollProgress } from '@/hooks/useScrollProgress';
 // ---------------------------------------------------------------------------
 
 const SECTION_WORDS: Record<string, string> = {
-  hero:             'DIRECTOR',
-  about:            'LOGLINE',
-  'now-playing':    'FEATURE',
+  hero:             'EMRAAN',
+  about:            'SYNOPSIS',
   filmography:      'FILMOGRAPHY',
-  intermission:     'INTERMISSION',
-  experience:       'PRODUCTION',
+  experience:       'CREDITS',
   skills:           'THE CREW',
-  archive:          'ARCHIVE',
+  archive:          'OFF-SCREEN',
   'screening-room': 'CINEMA',
+  credits:          'FIN',
   contact:          'FIN',
 };
 
@@ -55,7 +54,7 @@ export default function AmbientType() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: 'easeInOut' }}
           style={{
-            fontFamily: 'var(--font-display)',
+            fontFamily: 'var(--font-mono)',
             fontSize: 'var(--text-huge)',
             color: 'var(--color-text-muted)',
             userSelect: 'none',

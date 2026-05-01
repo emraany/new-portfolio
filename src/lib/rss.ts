@@ -20,13 +20,18 @@ function formatDate(pubDate: string): string {
 }
 
 function extractTitle(rawTitle: string): string {
-  // Letterboxd diary titles look like: "Watched Film Title, YYYY" or just "Film Title"
-  // Strip leading "Watched " prefix if present
+  // Letterboxd diary titles look like:
+  //   "Film Title, YYYY - ★★★★"   (rated)
+  //   "Film Title, YYYY - ★★★½"   (half-star rated)
+  //   "Film Title, YYYY"           (unrated)
+  //   "Watched Film Title, YYYY"   (older format)
   let t = rawTitle.trim();
   if (t.toLowerCase().startsWith('watched ')) {
     t = t.slice(8);
   }
-  // Strip trailing ", YYYY" year suffix if present
+  // Strip trailing rating suffix " - ★…" (full stars and optional ½)
+  t = t.replace(/\s*-\s*[★½]+\s*$/u, '');
+  // Strip trailing ", YYYY" year suffix
   t = t.replace(/,\s*\d{4}\s*$/, '');
   return t.trim();
 }

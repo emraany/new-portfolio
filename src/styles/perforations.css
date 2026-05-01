@@ -5,18 +5,9 @@
 
    SCROLL BEHAVIOR
    ---------------
-   JavaScript sets --scroll-y on :root every animation frame.
-   The perforation background-position reads that value so the
-   holes appear to travel upward at the same speed the user
-   scrolls downward — mirroring the film-strip-through-gate
-   metaphor exactly.
-
-   MOTION BLUR
-   -----------
-   When the user scrolls fast, JS adds .is-fast-scroll to
-   <body>. The strips gain filter: blur(1.5px) in the Y axis
-   only (via SVG filter on the element — CSS blur is isotropic,
-   so we approximate with a small uniform blur).
+   ScrollDriver writes --perf-position to :root every animation
+   frame. The strip drifts forward at a constant idle baseline,
+   independent of scroll.
 
    FRAME LINES
    -----------
@@ -42,17 +33,14 @@
   /* The perforation holes are drawn as a repeating SVG background.
      Each tile is one hole + gap. The hole is a rounded rect
      centred horizontally in the strip, filled with pure black.   */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='34'%3E%3Crect x='13' y='7' width='14' height='20' rx='3' ry='3' fill='%23000000'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='58'%3E%3Crect x='23' y='11' width='26' height='36' rx='5' ry='5' fill='%23000000'/%3E%3C/svg%3E");
   background-repeat: repeat-y;
   background-size: var(--perf-strip-width) var(--perf-pattern-height);
 
-  /* Scroll the pattern upward as --scroll-y increases.
-     background-position-y is negated: scrolling down (positive
-     scroll-y) moves the background up (negative y offset).       */
+  /* Position is driven by ScrollDriver via --perf-position — a
+     constant forward drift independent of scroll.                  */
   background-position-x: center;
-  background-position-y: calc(var(--scroll-y) * -1);
-
-  /* Smooth transition — none needed here; JS drives it every RAF */
+  background-position-y: var(--perf-position, 0px);
   will-change: background-position;
 }
 
@@ -80,26 +68,9 @@
 
 @media (max-width: 768px) {
   .film-strip {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='30'%3E%3Crect x='7' y='7' width='10' height='16' rx='3' ry='3' fill='%23000000'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='42'%3E%3Crect x='10' y='9' width='20' height='24' rx='4' ry='4' fill='%23000000'/%3E%3C/svg%3E");
     background-size: var(--perf-strip-width) var(--perf-pattern-height);
   }
-}
-
-/* ------------------------------------------------------------------
-   Fast-scroll motion blur
-   Added by JS to <body> when scroll velocity exceeds threshold.
-   Only the strips are blurred; content remains sharp.
-   ------------------------------------------------------------------ */
-
-.is-fast-scroll .film-strip {
-  filter: blur(1.5px);
-  /* Blur the strip while keeping it visible */
-  transition: filter 80ms linear;
-}
-
-/* Remove blur when scrolling slows */
-.film-strip {
-  transition: filter 200ms ease-out;
 }
 
 /* ------------------------------------------------------------------
@@ -132,13 +103,41 @@
 }
 
 /* ------------------------------------------------------------------
-   Reduced-motion: keep strips visible but disable scroll animation.
-   Content will still offset correctly; strips just won't scroll.
+   KEYKODE edge code — vertical text along the inner edge of each strip.
+   Mimics the latent edge printing on real 35mm film stock.
+   ------------------------------------------------------------------ */
+
+.perf-edge-code {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%) rotate(90deg);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.film-strip--left .perf-edge-code {
+  transform: translateX(-50%) translateY(-50%) rotate(90deg);
+}
+
+.film-strip--right .perf-edge-code {
+  transform: translateX(-50%) translateY(-50%) rotate(-90deg);
+}
+
+/* ------------------------------------------------------------------
+   Reduced-motion: ScrollDriver pins --perf-position to 0px and skips
+   updates, so the strips simply hold still. Drop the will-change hint
+   since we're not animating.
    ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
   .film-strip {
-    background-position-y: 0px;
     will-change: auto;
   }
 }

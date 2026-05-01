@@ -11,6 +11,8 @@
  * No JavaScript animation runs here — it is all CSS.
  */
 
+const EDGE_CODE = 'EMRAAN-Y · 2026 · 24fps · REEL 01';
+
 export default function FilmPerforations() {
   return (
     <>
@@ -18,12 +20,16 @@ export default function FilmPerforations() {
         className="film-strip film-strip--left"
         aria-hidden="true"
         role="presentation"
-      />
+      >
+        <span className="perf-edge-code">{EDGE_CODE}</span>
+      </div>
       <div
         className="film-strip film-strip--right"
         aria-hidden="true"
         role="presentation"
-      />
+      >
+        <span className="perf-edge-code">{EDGE_CODE}</span>
+      </div>
     </>
   );
 }

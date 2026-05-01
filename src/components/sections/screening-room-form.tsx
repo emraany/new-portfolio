@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { tmdbPosterUrl } from '@/lib/tmdb';
-import type { Recommendation } from '@/lib/supabase';
 import type { TMDBFilm } from '@/lib/tmdb';
 
 // ─── Ticket Button ────────────────────────────────────────────────────────────
@@ -24,6 +23,7 @@ function TicketButton({ onClick, type = 'button', disabled, children }: TicketBu
       disabled={disabled}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="cursor-target"
       style={{
         border: '1px solid var(--color-accent)',
         color: hovered && !disabled ? 'var(--color-bg)' : 'var(--color-accent)',
@@ -45,21 +45,6 @@ function TicketButton({ onClick, type = 'button', disabled, children }: TicketBu
 
 // ─── Time Ago Helper ──────────────────────────────────────────────────────────
 
-function timeAgo(isoString: string): string {
-  try {
-    const diff = Date.now() - new Date(isoString).getTime();
-    const days = Math.floor(diff / 86_400_000);
-    if (days === 0) return 'today';
-    if (days === 1) return '1 day ago';
-    if (days < 30) return `${days} days ago`;
-    const months = Math.floor(days / 30);
-    if (months === 1) return '1 month ago';
-    return `${months} months ago`;
-  } catch {
-    return '';
-  }
-}
-
 // ─── Main Form Component ──────────────────────────────────────────────────────
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY ?? '';
@@ -73,18 +58,7 @@ export default function RecommendationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pastRecs, setPastRecs] = useState<Recommendation[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-
-  // Load past recommendations on mount
-  useEffect(() => {
-    fetch('/api/recommendations')
-      .then((r) => r.json())
-      .then((data: unknown) => {
-        if (Array.isArray(data)) setPastRecs(data as Recommendation[]);
-      })
-      .catch(() => {});
-  }, []);
 
   // Debounced TMDB search
   const doSearch = useCallback((q: string) => {
@@ -155,8 +129,7 @@ export default function RecommendationForm() {
         throw new Error(errData.error ?? 'Submission failed');
       }
 
-      const created = (await res.json()) as Recommendation;
-      setPastRecs((prev) => [created, ...prev]);
+      await res.json();
       setSubmitted(true);
       setSelectedFilm(null);
       setQuery('');
@@ -189,21 +162,39 @@ export default function RecommendationForm() {
         What Should I Watch?
       </p>
 
-      {/* Box-office window frame */}
-      <div
+      {/* Helper text */}
+      <p
         style={{
-          border: '1px solid var(--color-border)',
-          padding: '32px',
-          background: 'var(--color-surface)',
-          maxWidth: '600px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-text-secondary)',
+          marginBottom: '24px',
+          lineHeight: 1.5,
         }}
       >
+        Your recommendation goes straight into a list I check on Letterboxd — I&apos;ll be sure to watch it.
+      </p>
+
+      {/* Box-office window frame */}
+      <style>{`
+        .reco-box {
+          border: 1px solid var(--color-border);
+          padding: 32px;
+          background: var(--color-surface);
+          max-width: 600px;
+        }
+        @media (max-width: 600px) {
+          .reco-box { padding: 16px; }
+        }
+      `}</style>
+      <div className="reco-box">
         <form onSubmit={handleSubmit}>
           {/* Search input */}
           <div style={{ position: 'relative', marginBottom: '16px' }}>
             <input
               type="text"
               value={query}
+              className="cursor-target"
               onChange={(e) => {
                 setQuery(e.target.value);
                 if (selectedFilm) setSelectedFilm(null);
@@ -381,7 +372,8 @@ export default function RecommendationForm() {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Why should I watch this?"
+            className="cursor-target"
+            placeholder="Leave a note with your recommendation? (No spoilers!)"
             rows={3}
             style={{
               width: '100%',
@@ -437,108 +429,6 @@ export default function RecommendationForm() {
         </form>
       </div>
 
-      {/* Past recommendations strip */}
-      {pastRecs.length > 0 && (
-        <div style={{ marginTop: '32px' }}>
-          <p
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-text-secondary)',
-              letterSpacing: 'var(--tracking-wide)',
-              textTransform: 'uppercase',
-              marginBottom: '16px',
-            }}
-          >
-            From Other Visitors
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              gap: '16px',
-              overflowX: 'auto',
-              paddingBottom: '16px',
-              scrollSnapType: 'x mandatory',
-            }}
-          >
-            {pastRecs.map((rec) => (
-              <div
-                key={rec.id ?? `${rec.tmdb_id}-${rec.created_at ?? ''}`}
-                style={{
-                  flexShrink: 0,
-                  width: '120px',
-                  scrollSnapAlign: 'start',
-                }}
-              >
-                {/* Poster */}
-                <div
-                  style={{
-                    aspectRatio: '2/3',
-                    background: 'var(--color-surface)',
-                    overflow: 'hidden',
-                    marginBottom: '8px',
-                  }}
-                >
-                  {rec.poster_path ? (
-                    <img
-                      src={tmdbPosterUrl(rec.poster_path, 'w342')}
-                      alt={rec.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : null}
-                </div>
-
-                {/* Title */}
-                <p
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--color-text-primary)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    margin: '0 0 4px',
-                  }}
-                >
-                  {rec.title}
-                </p>
-
-                {/* Note */}
-                {rec.note && (
-                  <p
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--color-text-secondary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      margin: '0 0 4px',
-                    }}
-                    title={rec.note}
-                  >
-                    {rec.note}
-                  </p>
-                )}
-
-                {/* Timestamp */}
-                {rec.created_at && (
-                  <p
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--color-text-muted)',
-                      margin: 0,
-                    }}
-                  >
-                    {timeAgo(rec.created_at)}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

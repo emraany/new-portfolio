@@ -1,127 +1,129 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { animate, type MotionValue } from 'framer-motion';
 
 /**
  * SpoolUp
  *
- * Film-threading effect played after the countdown white flash.
- * Phase 1 (800ms): rapid scroll from below with motion blur.
- * Phase 2 (500ms): deceleration — blur clears, opacity rises.
- * Phase 3 (300ms): spring lock-in with a mechanical bounce.
- *
- * 5-8 subliminal white flash frames fire during Phase 1.
+ * Runs the film-threading effect as a pure transform animation on the
+ * page content. The real window scroll is untouched — the parent holds
+ * a MotionValue that drives translateY on the children wrapper, so the
+ * effect plays "in a vacuum" and cannot be disturbed by the user's
+ * real scroll position. Fixed UI (perforations, grain, cursor) stays
+ * pinned like a film projector gate while the content reels past.
  */
 
 interface SpoolUpProps {
-  children: React.ReactNode;
+  pageY: MotionValue<number>;
+  blurY: MotionValue<number>;
+  getTravel: () => number;
   onComplete: () => void;
+  onSettleStart?: () => void;
+  registerStop?: (stop: () => void) => void;
 }
 
-type SpoolPhase = 'phase1' | 'phase2' | 'phase3' | 'done';
+// Fast start, then each pass takes noticeably longer — reel losing momentum
+const LOOP_DURATIONS = [0.15, 0.28, 0.5];
+const SETTLE_DURATION = 0.7;
 
-export default function SpoolUp({ children, onComplete }: SpoolUpProps) {
-  const [phase, setPhase] = useState<SpoolPhase>('phase1');
-  const [flashVisible, setFlashVisible] = useState(false);
+export default function SpoolUp({
+  pageY,
+  blurY,
+  getTravel,
+  onComplete,
+  onSettleStart,
+  registerStop,
+}: SpoolUpProps) {
   const onCompleteRef = useRef(onComplete);
-
+  const onSettleStartRef = useRef(onSettleStart);
   useEffect(() => {
     onCompleteRef.current = onComplete;
-  }, [onComplete]);
+    onSettleStartRef.current = onSettleStart;
+  }, [onComplete, onSettleStart]);
 
-  // Schedule subliminal flash frames during phase 1 (0–800ms)
   useEffect(() => {
-    const FLASH_COUNT = 6;
-    const PHASE1_DURATION = 800;
-    const flashTimers: ReturnType<typeof setTimeout>[] = [];
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-    for (let i = 0; i < FLASH_COUNT; i++) {
-      const flashTime = 50 + Math.random() * (PHASE1_DURATION - 150);
-      const timer = setTimeout(() => {
-        setFlashVisible(true);
-        setTimeout(() => setFlashVisible(false), 120);
-      }, flashTime);
-      flashTimers.push(timer);
+    if (reduced) {
+      pageY.set(0);
+      blurY.set(0);
+      onSettleStartRef.current?.();
+      onCompleteRef.current();
+      return;
     }
 
-    const p1Timer = setTimeout(() => setPhase('phase2'), 800);
-    const p2Timer = setTimeout(() => setPhase('phase3'), 1300);
-    const p3Timer = setTimeout(() => {
-      setPhase('done');
+    const travel = getTravel();
+
+    if (travel <= 0) {
       onCompleteRef.current();
-    }, 1600);
+      return;
+    }
+
+    let stopped = false;
+    const stopFns: Array<() => void> = [];
+
+    const totalLoopDuration = LOOP_DURATIONS.reduce((a, b) => a + b, 0);
+    const totalDuration = totalLoopDuration + SETTLE_DURATION;
+    const loopFraction = totalLoopDuration / totalDuration;
+
+    // Motion blur held at full during loops, fades out over settle.
+    const blurControls = animate(blurY, [3, 3, 0], {
+      duration: totalDuration,
+      times: [0, loopFraction, 1],
+      ease: ['linear', 'easeOut'],
+    });
+    stopFns.push(() => blurControls.stop());
+
+    // Run each loop pass sequentially, each one slower than the last.
+    function runPass(index: number) {
+      if (stopped) return;
+
+      if (index >= LOOP_DURATIONS.length) {
+        // All passes done — settle back to rest.
+        onSettleStartRef.current?.();
+        const settleControls = animate(pageY, 0, {
+          duration: SETTLE_DURATION,
+          ease: [0.16, 1, 0.3, 1],
+          onComplete: () => {
+            if (!stopped) {
+              pageY.set(0);
+              onCompleteRef.current();
+            }
+          },
+        });
+        stopFns.push(() => settleControls.stop());
+        return;
+      }
+
+      pageY.set(0);
+      const ctrl = animate(pageY, -travel, {
+        duration: LOOP_DURATIONS[index],
+        ease: 'linear',
+        onComplete: () => runPass(index + 1),
+      });
+      stopFns.push(() => ctrl.stop());
+    }
+
+    runPass(0);
+
+    if (registerStop) {
+      registerStop(() => {
+        stopped = true;
+        stopFns.forEach(fn => fn());
+        pageY.set(0);
+        blurY.set(0);
+      });
+    }
 
     return () => {
-      flashTimers.forEach(clearTimeout);
-      clearTimeout(p1Timer);
-      clearTimeout(p2Timer);
-      clearTimeout(p3Timer);
+      stopped = true;
+      stopFns.forEach(fn => fn());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Derive animation props from phase
-  const getAnimateTarget = () => {
-    switch (phase) {
-      case 'phase1':
-        return { y: 0, filter: 'blur(8px)', opacity: 0.6, scaleY: 1.02 };
-      case 'phase2':
-        return { y: 0, filter: 'blur(0px)', opacity: 1, scaleY: 1 };
-      case 'phase3':
-      case 'done':
-        return { y: 0, filter: 'blur(0px)', opacity: 1, scaleY: 1 };
-    }
-  };
-
-  const getTransition = () => {
-    switch (phase) {
-      case 'phase1':
-        return { duration: 0.8, ease: 'easeIn' as const };
-      case 'phase2':
-        return {
-          duration: 0.5,
-          ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
-        };
-      case 'phase3':
-        return { type: 'spring' as const, stiffness: 300, damping: 20 };
-      case 'done':
-        return { duration: 0 };
-    }
-  };
-
-  return (
-    <>
-      {/* Content container with spool-up animation */}
-      <motion.div
-        initial={{
-          y: '100vh',
-          filter: 'blur(8px)',
-          opacity: 0.6,
-          scaleY: 1,
-        }}
-        animate={getAnimateTarget()}
-        transition={getTransition()}
-        style={{
-          width: '100%',
-          transformOrigin: 'center bottom',
-        }}
-      >
-        {children}
-      </motion.div>
-
-      {/* Subliminal white flash overlay */}
-      {flashVisible && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: '#ffffff',
-            zIndex: 'var(--z-intro)' as unknown as number,
-            pointerEvents: 'none',
-          }}
-          aria-hidden="true"
-        />
-      )}
-    </>
-  );
+  return null;
 }

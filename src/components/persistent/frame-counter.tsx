@@ -23,14 +23,13 @@ import { useScrollProgress } from '@/hooks/useScrollProgress';
 const SECTION_REEL_MAP: Record<string, string> = {
   'hero':           '01',
   'about':          '02',
-  'now-playing':    '03',
-  'filmography':    '04',
-  'intermission':   '05',
-  'experience':     '06',
-  'skills':         '07',
-  'archive':        '08',
-  'screening-room': '09',
-  'contact':        '10',
+  'filmography':    '03',
+  'experience':     '04',
+  'skills':         '05',
+  'archive':        '06',
+  'screening-room': '07',
+  'credits':        '08',
+  'contact':        '09',
 };
 
 function padFrame(n: number): string {

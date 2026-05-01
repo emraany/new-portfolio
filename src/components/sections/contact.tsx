@@ -1,165 +1,88 @@
 'use client';
 
 import { useState } from 'react';
-import CreditsRoll from '@/components/credits-roll/credits-roll';
+import SectionHeader from '@/components/ui/section-header';
 
-/**
- * Contact section — id="contact"
- *
- * "That's a Wrap" sign-off with contact links and a ROLL CREDITS button
- * that mounts the CreditsRoll component in full-viewport overlay mode.
- */
 export default function Contact() {
-  const [creditsActive, setCreditsActive] = useState(false);
+  const [emailHovered, setEmailHovered] = useState(false);
 
   return (
-    <>
-      <section
-        id="contact"
+    <section
+      id="contact"
+      className="contact-section"
+      style={{
+        paddingTop: 'var(--space-24)',
+        paddingBottom: 'var(--space-24)',
+        paddingLeft: 'var(--section-pad-x)',
+        paddingRight: 'var(--section-pad-x)',
+      }}
+    >
+      <style>{`
+        @media (max-width: 768px) {
+          .contact-section {
+            padding-top: var(--space-12) !important;
+            padding-bottom: var(--space-12) !important;
+          }
+        }
+      `}</style>
+      <SectionHeader label="FINAL TAKE" heading="[Contact]" />
+
+      <div
         style={{
-          padding: 'var(--space-24) var(--space-8)',
-          maxWidth: '800px',
-          margin: '0 auto',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 'var(--space-6)',
         }}
       >
-        {/* Top frame line */}
-        <div
+        <a
+          href="mailto:emraany1220@gmail.com"
+          onMouseEnter={() => setEmailHovered(true)}
+          onMouseLeave={() => setEmailHovered(false)}
+          className="cursor-target"
           style={{
-            width: '100%',
-            height: '1px',
-            backgroundColor: 'var(--color-border)',
-            marginBottom: 'var(--space-16)',
-          }}
-        />
-
-        {/* Headline */}
-        <h2
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '4rem',
-            fontWeight: 700,
-            color: 'var(--color-text-primary)',
-            letterSpacing: 'var(--tracking-tight)',
-            lineHeight: 1.1,
-            margin: '0 0 var(--space-4) 0',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
+            color: emailHovered ? 'var(--color-bg)' : 'var(--color-accent)',
+            backgroundColor: emailHovered ? 'var(--color-accent)' : 'transparent',
+            textDecoration: 'none',
+            letterSpacing: 'var(--tracking-wide)',
+            padding: '2px 8px',
+            transition: 'background-color 200ms, color 200ms',
           }}
         >
-          THAT&apos;S A WRAP
-        </h2>
+          emraany1220@gmail.com
+        </a>
 
-        {/* Tagline */}
-        <p
+        <a
+          href="https://github.com/emraany"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
-            fontFamily: 'var(--font-display)',
-            fontStyle: 'italic',
-            fontSize: '1.25rem',
-            color: 'var(--color-text-secondary)',
-            margin: '0 0 var(--space-12) 0',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-accent)',
+            textDecoration: 'none',
+            letterSpacing: 'var(--tracking-wide)',
           }}
         >
-          &ldquo;Let&apos;s make something.&rdquo;
-        </p>
+          github.com/emraany
+        </a>
 
-        {/* Contact links */}
-        <div
+        <a
+          href="https://www.linkedin.com/in/emraanyusuf"
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 'var(--space-6)',
-            marginBottom: 'var(--space-12)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-accent)',
+            textDecoration: 'none',
+            letterSpacing: 'var(--tracking-wide)',
           }}
         >
-          <a
-            href="mailto:emraany1220@gmail.com"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-accent)',
-              textDecoration: 'none',
-              letterSpacing: 'var(--tracking-wide)',
-            }}
-          >
-            emraany1220@gmail.com
-          </a>
-
-          <a
-            href="https://github.com/placeholder"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-accent)',
-              textDecoration: 'none',
-              letterSpacing: 'var(--tracking-wide)',
-            }}
-          >
-            github.com/placeholder
-          </a>
-
-          <a
-            href="https://linkedin.com/in/placeholder"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-accent)',
-              textDecoration: 'none',
-              letterSpacing: 'var(--tracking-wide)',
-            }}
-          >
-            linkedin.com/in/placeholder
-          </a>
-        </div>
-
-        {/* ROLL CREDITS button */}
-        <RollCreditsButton onClick={() => setCreditsActive(true)} />
-      </section>
-
-      {/* CreditsRoll — mounts as full-viewport overlay when active */}
-      <CreditsRoll
-        isActive={creditsActive}
-        onComplete={() => {
-          // onComplete fires after the 3s black screen; credits overlay persists
-          // until user clicks Roll Again or navigates away
-        }}
-      />
-    </>
-  );
-}
-
-// ------------------------------------------------------------------
-// RollCreditsButton — ticket-style amber bordered button
-// ------------------------------------------------------------------
-
-interface RollCreditsButtonProps {
-  onClick: () => void;
-}
-
-function RollCreditsButton({ onClick }: RollCreditsButtonProps) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--text-sm)',
-        textTransform: 'uppercase',
-        letterSpacing: 'var(--tracking-wide)',
-        padding: '10px 24px',
-        border: '1px solid var(--color-accent)',
-        color: hovered ? 'var(--color-bg)' : 'var(--color-accent)',
-        backgroundColor: hovered ? 'var(--color-accent)' : 'transparent',
-        cursor: 'pointer',
-        transition: 'background-color 200ms, color 200ms',
-      }}
-      aria-label="Roll credits"
-    >
-      [ ROLL CREDITS ]
-    </button>
+          linkedin.com/in/emraanyusuf
+        </a>
+      </div>
+    </section>
   );
 }

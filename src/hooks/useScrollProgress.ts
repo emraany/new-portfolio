@@ -26,13 +26,12 @@ export interface ScrollProgress {
 const SECTION_IDS = [
   'hero',
   'about',
-  'now-playing',
   'filmography',
-  'intermission',
   'experience',
   'skills',
   'archive',
   'screening-room',
+  'credits',
   'contact',
 ] as const;
 

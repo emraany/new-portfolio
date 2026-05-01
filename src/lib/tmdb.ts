@@ -27,7 +27,7 @@ export async function searchFilm(title: string): Promise<TMDBFilm | null> {
   if (!API_KEY) return null;
   try {
     const url = `${BASE}/search/movie?query=${encodeURIComponent(title)}&api_key=${API_KEY}`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
     const data = (await res.json()) as { results: TMDBFilm[] };
     return data.results?.[0] ?? null;

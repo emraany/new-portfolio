@@ -22,6 +22,27 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hide native cursor only on true pointer devices (not touch screens) */
+@media (hover: hover) and (pointer: fine) {
+  *, *::before, *::after {
+    cursor: none !important;
+  }
+}
+
+/* Restore native cursor on touch screens regardless of hover capability */
+@media (hover: none), (pointer: coarse) {
+  *, *::before, *::after {
+    cursor: auto !important;
+  }
+}
+
+/* DarkroomImage block override for grid cards */
+.darkroom-image.darkroom-block {
+  display: block;
+  width: 100%;
 }
 
 /* ------------------------------------------------------------------
@@ -31,7 +52,7 @@
 html {
   height: 100%;
   scroll-behavior: smooth;
-  /* Thin amber scrollbar */
+  /* Thin accent scrollbar */
   scrollbar-width: thin;
   scrollbar-color: var(--color-accent) var(--color-surface);
   /* Consistent text rendering */
@@ -66,14 +87,30 @@ body {
   min-height: 100%;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  font-family: var(--font-body);
+  font-family: var(--font-mono);
   font-size: var(--text-base);
   line-height: var(--leading-body);
-  /* Crisp, warm anti-aliasing */
+  /* Crisp anti-aliasing */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Prevent horizontal overflow from perforation strips */
   overflow-x: hidden;
+}
+
+/* ------------------------------------------------------------------
+   Page vignette — fixed radial darkening at viewport edges.
+   Sits at z-index 9999, below cursor (--z-cursor: 60 in stacking
+   context but this fixed layer stays beneath the cursor overlay).
+   Max 8% black — purely atmospheric.
+   ------------------------------------------------------------------ */
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(0,0,0,0.08) 100%);
 }
 
 /* ------------------------------------------------------------------
@@ -105,7 +142,7 @@ body {
    ------------------------------------------------------------------ */
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
+  font-family: var(--font-display);  /* resolves to --font-archivo via variables.css */
   font-weight: 700;
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
@@ -157,17 +194,19 @@ a {
   --font-display:     var(--font-display);
 }
 
-/* Mobile responsiveness additions */
-@media (max-width: 768px) {
-  /* Scale down huge ambient type */
-  :root {
-    --text-huge: 8rem;
-  }
+/* ------------------------------------------------------------------
+   Section gutter utility — applies the responsive section padding
+   tokens defined in variables.css. Use on top-level <section> roots.
+   ------------------------------------------------------------------ */
 
-  /* Ensure sections don't overflow horizontally */
+.responsive-section {
+  padding: var(--section-pad-y) var(--section-pad-x);
+}
+
+/* Mobile-only safety net to prevent inner content from forcing
+   horizontal scroll. Doesn't touch desktop layout. */
+@media (max-width: 768px) {
   section {
     overflow-x: hidden;
   }
-
-  /* Poster grids already handle their own breakpoints via inline styles */
 }

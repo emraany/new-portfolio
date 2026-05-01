@@ -10,20 +10,18 @@
      ---------------------------------------------------------- */
 
   /* Backgrounds */
-  --color-bg:              #0a0a0a;  /* near-black, slight warmth */
-  --color-surface:         #141414;  /* elevated panels, cards, modals */
+  --color-bg:              #0E1210;  /* cooler charcoal — green undertone */
+  --color-surface:         #131815;  /* elevated panels, cards, modals */
   --color-border:          #2a2a2a;  /* subtle separators, card edges */
 
   /* Text */
-  --color-text-primary:    #e8e4dc;  /* warm off-white — projector light */
-  --color-text-secondary:  #8a8680;  /* warm gray — metadata, timestamps */
-  --color-text-muted:      #4a4641;  /* dim — ambient background text */
+  --color-text-primary:    #D8D5CC;  /* cool bone/paper — less candlelight */
+  --color-text-secondary:  #7a7c78;  /* cool gray — metadata, timestamps */
+  --color-text-muted:      #454744;  /* dim — ambient background text */
 
   /* Accents */
-  --color-accent:          #c8a96e;  /* warm amber/gold — aged celluloid */
-  --color-accent-primary:  #c8a96e;  /* alias kept for clarity */
-  --color-accent-red:      #8b1a1a;  /* deep red — intermission, badges */
-  --color-accent-secondary:#8b1a1a;  /* alias */
+  --color-accent:          #384D45;  /* dark sage/teal — film-lab darkroom */
+  --color-accent-primary:  #384D45;  /* alias kept for clarity */
 
   /* Credits roll exception (not used outside that section) */
   --color-credits-bg:      #000000;
@@ -36,8 +34,20 @@
      TYPOGRAPHY
      ---------------------------------------------------------- */
 
+  /*
+   * Typography roles (one rule per text type):
+   *   Label    — font-mono · color-accent · uppercase · tracking-wide
+   *              Use: section headers, subsection labels, metadata, HUD readouts
+   *   Heading  — font-display · color-text-primary (or muted for bracketed sibling)
+   *              Use: section titles, project titles, poster titles
+   *   Body     — font-body · color-text-secondary
+   *              Use: prose paragraphs
+   *   Accent   — font-mono · color-accent
+   *              Use: links, badges, pull quotes
+   */
+
   /* Font families — values injected by next/font in layout.tsx */
-  --font-display: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-display: var(--font-archivo), 'Archivo Narrow', sans-serif;
   --font-body:    var(--font-inter),    'Inter', system-ui, sans-serif;
   --font-mono:    var(--font-jetbrains),'JetBrains Mono', 'Courier New', monospace;
 
@@ -76,19 +86,30 @@
   --space-24:  6rem;     /* 96px */
 
   /* ----------------------------------------------------------
+     SECTION GUTTERS
+     Side and top/bottom padding tokens for top-level <section>
+     elements. Identical to today on desktop; shrink on mobile.
+     ---------------------------------------------------------- */
+
+  --section-pad-x: var(--space-8);   /* 32px desktop */
+  --section-pad-y: var(--space-20);  /* 80px desktop */
+
+  /* ----------------------------------------------------------
      PERFORATION GEOMETRY
      ---------------------------------------------------------- */
 
-  --perf-strip-width:     40px;   /* desktop */
-  --perf-hole-height:     20px;
-  --perf-hole-width:      14px;
-  --perf-hole-radius:     3px;
-  --perf-gap:             14px;   /* vertical gap between holes */
-  --perf-pattern-height:  34px;   /* hole-height + gap = one repeat unit */
+  --perf-strip-width:     72px;   /* desktop */
+  --perf-hole-height:     36px;
+  --perf-hole-width:      26px;
+  --perf-hole-radius:     5px;
+  --perf-gap:             22px;   /* vertical gap between holes */
+  --perf-pattern-height:  58px;   /* hole-height + gap = one repeat unit */
   --perf-border:          1px solid var(--color-border);
 
   /* Updated by JavaScript on every scroll event */
   --scroll-y: 0px;
+  /* Driven by ScrollDriver — feeds film-strip background-position-y */
+  --perf-position: 0px;
 
   /* ----------------------------------------------------------
      Z-INDEX LAYERS
@@ -128,14 +149,46 @@
 }
 
 /* ------------------------------------------------------------------
-   MOBILE OVERRIDES
+   TABLET / SMALL DESKTOP OVERRIDES (≤1024px)
+   Fluid type that caps at the desktop value, so ≥1024px is
+   byte-identical to today.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 1024px) {
+  :root {
+    --text-3xl:  clamp(1.75rem, 4vw, 2.625rem);  /* 28→42 */
+    --text-4xl:  clamp(2.5rem,  6vw, 4.5rem);    /* 40→72 */
+  }
+}
+
+/* ------------------------------------------------------------------
+   MOBILE OVERRIDES (≤768px)
    ------------------------------------------------------------------ */
 
 @media (max-width: 768px) {
   :root {
-    --perf-strip-width: 24px;
-    --perf-hole-width:  10px;
-    --perf-hole-height: 16px;
-    --perf-pattern-height: 30px;
+    --perf-strip-width:    34px;
+    --perf-hole-width:     14px;
+    --perf-hole-height:    22px;
+    --perf-gap:            21px;
+    --perf-pattern-height: 43px;
+
+    /* Tighter section gutters so content has room next to the
+       perforation strips on narrow viewports. */
+    --section-pad-x:       var(--space-4);   /* 16px */
+    --section-pad-y:       var(--space-12);  /* 48px */
+
+    /* Ambient background type — large but no longer overwhelming. */
+    --text-huge:           5rem;
+  }
+}
+
+/* ------------------------------------------------------------------
+   SMALL PHONE OVERRIDES (≤480px)
+   ------------------------------------------------------------------ */
+
+@media (max-width: 480px) {
+  :root {
+    --text-huge:           3.5rem;
   }
 }

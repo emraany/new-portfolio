@@ -37,13 +37,13 @@ interface NavSection {
 
 const SECTIONS: NavSection[] = [
   { id: 'hero',           label: 'TITLE CARD'    },
-  { id: 'about',          label: 'LOGLINE'        },
-  { id: 'now-playing',    label: 'NOW PLAYING'    },
-  { id: 'filmography',    label: 'FILMOGRAPHY'    },
-  { id: 'experience',     label: 'PRODUCTION'     },
-  { id: 'skills',         label: 'THE CREW'       },
-  { id: 'screening-room', label: 'SCREENING'      },
-  { id: 'contact',        label: "THAT'S A WRAP"  },
+  { id: 'about',          label: 'SYNOPSIS'      },
+  { id: 'filmography',    label: 'FILMOGRAPHY'   },
+  { id: 'experience',     label: 'PRODUCTION CREDITS'       },
+  { id: 'skills',         label: 'THE CREW'      },
+  { id: 'archive',        label: 'OFF-SCREEN'    },
+  { id: 'screening-room', label: 'SCREENING ROOM'},
+  { id: 'credits',        label: 'THE END/CREDITS'       },
 ];
 
 /* ----------------------------------------------------------------
@@ -102,6 +102,7 @@ function DesktopNavItem({ section, isActive, isLast, onClick }: DesktopNavItemPr
         onClick={() => onClick(section.id)}
         whileHover={{ y: -1 }}
         transition={{ duration: 0.15, ease: 'easeOut' }}
+        className="cursor-target"
         style={{
           ...BASE_ITEM_STYLE,
           color: isActive ? 'var(--color-accent)' : 'var(--color-text-muted)',
@@ -362,10 +363,11 @@ export default function TicketNav() {
           onClick={toggleDrawer}
           aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={drawerOpen}
+          className="ticket-nav-hamburger"
           style={{
             position: 'fixed',
             bottom: '20px',
-            right: '20px',
+            right: 'calc(var(--perf-strip-width) + 12px)',
             zIndex: 'calc(var(--z-nav) + 1)' as unknown as number,
             width: '48px',
             height: '48px',

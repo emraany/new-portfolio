@@ -1,48 +1,135 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import DarkroomImage from '@/components/animations/darkroom-image';
 import type { Project } from '@/data/projects';
+
+/* Centered image lightbox — opens when clicking the panel's poster */
+function ImageLightbox({
+  project,
+  onClose,
+}: {
+  project: Project | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!project) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [project, onClose]);
+
+  return (
+    <AnimatePresence>
+      {project && (
+        <motion.div
+          key="image-lightbox"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.88)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 'calc(var(--z-cursor) - 1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px',
+          }}
+        >
+          <button
+            onClick={onClose}
+            aria-label="Close image"
+            className="cursor-target"
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'none',
+              border: '1px solid rgba(201,183,152,0.4)',
+              borderRadius: '50%',
+              width: '44px',
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'none',
+              color: 'var(--color-accent)',
+              zIndex: 1,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+              <line x1="3" y1="3" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="15" y1="3" x2="3" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+
+          <motion.div
+            initial={{ scale: 0.92, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.92, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              maxWidth: 'min(900px, 90vw)',
+              width: '100%',
+              aspectRatio: '16 / 10',
+              maxHeight: '82vh',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,183,152,0.12)',
+            }}
+          >
+            <Image
+              src={`/posters/${project.slug}.png`}
+              alt={`${project.title} — full view`}
+              fill
+              sizes="min(900px, 90vw)"
+              style={{ objectFit: 'cover', objectPosition: 'top' }}
+              priority
+            />
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 interface ScreeningPanelProps {
   project: Project | null;
   onClose: () => void;
 }
 
-/* SVG crosshair close button */
+/* Simple circle close button — matches the lightbox X */
 function CloseButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       aria-label="Close screening panel"
+      className="cursor-target"
       style={{
         background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '8px',
+        border: '1px solid rgba(201,183,152,0.4)',
+        borderRadius: '50%',
+        width: '44px',
+        height: '44px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        cursor: 'none',
         color: 'var(--color-accent)',
         flexShrink: 0,
       }}
     >
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="1.5" />
-        <line x1="10" y1="10" x2="22" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="22" y1="10" x2="10" y2="22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        {/* Reticle tick marks */}
-        <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-        <line x1="16" y1="26" x2="16" y2="30" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-        <line x1="2" y1="16" x2="6" y2="16" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-        <line x1="26" y1="16" x2="30" y2="16" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <line x1="3" y1="3" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="15" y1="3" x2="3" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     </button>
   );
@@ -88,9 +175,18 @@ const MONO_LABEL: React.CSSProperties = {
 };
 
 export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps) {
-  if (!project) return null;
+  const [mounted, setMounted] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [imgHovered, setImgHovered] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
-  return (
+  useEffect(() => {
+    if (!project) setLightboxOpen(false);
+  }, [project]);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {project && (
         <>
@@ -174,28 +270,46 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                   margin: 0,
                 }}
               >
-                {project.year}&nbsp;&middot;&nbsp;{project.genre}&nbsp;&middot;&nbsp;RATED&nbsp;{project.rating}
+                {project.year}
+                {project.genre && <>&nbsp;&middot;&nbsp;{project.genre}</>}
+                {project.rating && <>&nbsp;&middot;&nbsp;RATED&nbsp;{project.rating}</>}
               </p>
 
-              {/* Poster image */}
+              {/* Poster image — click to expand */}
               <DarkroomImage>
-                <div
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(true)}
+                  onMouseEnter={() => setImgHovered(true)}
+                  onMouseLeave={() => setImgHovered(false)}
+                  aria-label={`Expand ${project.title} image`}
+                  className="cursor-target"
                   style={{
                     position: 'relative',
                     width: '100%',
-                    aspectRatio: '2/3',
+                    aspectRatio: '16 / 10',
                     backgroundColor: 'var(--color-bg)',
                     overflow: 'hidden',
+                    padding: '10px',
+                    boxSizing: 'border-box',
+                    border: '1px solid var(--color-border)',
+                    cursor: 'pointer',
+                    display: 'block',
+                    font: 'inherit',
+                    color: 'inherit',
+                    textAlign: 'left',
                   }}
                 >
-                  <Image
-                    src={`/posters/${project.slug}.jpg`}
-                    alt={`${project.title} project poster`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 520px"
-                    style={{ objectFit: 'cover' }}
-                    onError={() => {/* silently use bg color fallback */}}
-                  />
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <Image
+                      src={`/posters/${project.slug}.png`}
+                      alt={`${project.title} project poster`}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 520px"
+                      style={{ objectFit: 'contain' }}
+                      onError={() => {/* silently use bg color fallback */}}
+                    />
+                  </div>
                   {/* Grain overlay */}
                   <div
                     aria-hidden="true"
@@ -210,7 +324,30 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                       pointerEvents: 'none',
                     }}
                   />
-                </div>
+                  {/* Expand affordance on hover */}
+                  <motion.div
+                    animate={{ opacity: imgHovered ? 1 : 0 }}
+                    initial={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+                      <rect x="1" y="1" width="34" height="34" rx="17" stroke="rgba(201,183,152,0.7)" strokeWidth="1.5" />
+                      <polyline points="13,13 10,10 14,10" stroke="rgba(201,183,152,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      <polyline points="23,13 26,10 22,10" stroke="rgba(201,183,152,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      <polyline points="13,23 10,26 14,26" stroke="rgba(201,183,152,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                      <polyline points="23,23 26,26 22,26" stroke="rgba(201,183,152,0.9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    </svg>
+                  </motion.div>
+                </button>
               </DarkroomImage>
 
               {/* Logline */}
@@ -232,7 +369,8 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                 <p style={MONO_LABEL}>Synopsis</p>
                 <p
                   style={{
-                    color: 'var(--color-text-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--color-text-secondary)',
                     fontSize: 'var(--text-sm)',
                     lineHeight: 'var(--leading-body)',
                     margin: 0,
@@ -265,19 +403,21 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
               </div>
 
               {/* Production Notes */}
-              <div>
-                <p style={MONO_LABEL}>Production Notes</p>
-                <p
-                  style={{
-                    color: 'var(--color-text-secondary)',
-                    fontSize: 'var(--text-sm)',
-                    lineHeight: 'var(--leading-body)',
-                    margin: 0,
-                  }}
-                >
-                  {project.productionNotes}
-                </p>
-              </div>
+              {project.productionNotes && (
+                <div>
+                  <p style={MONO_LABEL}>Production Notes</p>
+                  <p
+                    style={{
+                      color: 'var(--color-text-secondary)',
+                      fontSize: 'var(--text-sm)',
+                      lineHeight: 'var(--leading-body)',
+                      margin: 0,
+                    }}
+                  >
+                    {project.productionNotes}
+                  </p>
+                </div>
+              )}
 
               {/* Award badge */}
               {project.award && (
@@ -306,6 +446,7 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                     href={project.liveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="cursor-target"
                     style={ticketButtonStyle('primary')}
                   >
                     View Live
@@ -316,6 +457,7 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                     href={project.repoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="cursor-target"
                     style={ticketButtonStyle('secondary')}
                   >
                     Source Code
@@ -324,8 +466,14 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
               </div>
             </div>
           </motion.aside>
+
+          <ImageLightbox
+            project={lightboxOpen ? project : null}
+            onClose={() => setLightboxOpen(false)}
+          />
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

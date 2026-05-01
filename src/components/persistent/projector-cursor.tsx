@@ -1,163 +1,263 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { motion, useSpring, useMotionValue } from 'framer-motion';
-
-// ---------------------------------------------------------------------------
-// Focus Reticle — inline SVG crosshair-in-circle at cursor center
-// ---------------------------------------------------------------------------
-
-function FocusReticle() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Outer circle */}
-      <circle
-        cx="8"
-        cy="8"
-        r="6.5"
-        stroke="var(--color-accent)"
-        strokeWidth="0.75"
-        opacity="0.9"
-      />
-      {/* Horizontal crosshair */}
-      <line
-        x1="1"
-        y1="8"
-        x2="15"
-        y2="8"
-        stroke="var(--color-accent)"
-        strokeWidth="0.75"
-        opacity="0.9"
-      />
-      {/* Vertical crosshair */}
-      <line
-        x1="8"
-        y1="1"
-        x2="8"
-        y2="15"
-        stroke="var(--color-accent)"
-        strokeWidth="0.75"
-        opacity="0.9"
-      />
-    </svg>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ProjectorCursor
-// ---------------------------------------------------------------------------
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { gsap } from 'gsap';
 
 export default function ProjectorCursor() {
-  // Detect touch/coarse pointer devices — disable on mobile.
-  const [isEnabled, setIsEnabled] = useState(false);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const cornersRef = useRef<NodeListOf<HTMLDivElement> | null>(null);
+  const dotRef = useRef<HTMLDivElement>(null);
+
+  const isActiveRef = useRef(false);
+  const targetCornerPositionsRef = useRef<{ x: number; y: number }[] | null>(null);
+  const tickerFnRef = useRef<(() => void) | null>(null);
+  const activeStrengthRef = useRef({ current: 0 });
+
+  // Default to `false` so SSR and the first client render match. The real
+  // value is computed in useEffect after mount; on touch devices we then
+  // re-render to null. Hydrating with the same shape avoids the position
+  // shift that previously misaligned AmbientType with the cursor div.
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
-    if (!isCoarse) {
-      setIsEnabled(true);
-    }
+    const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isSmallScreen = window.innerWidth <= 768;
+    const ua = navigator.userAgent || navigator.vendor || (window as unknown as { opera: string }).opera;
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+    if ((hasTouchScreen && isSmallScreen) || isMobileUA) setIsMobile(true);
   }, []);
 
-  // Raw mouse position (updated on every mousemove).
-  const mouseX = useMotionValue(-300);
-  const mouseY = useMotionValue(-300);
+  const constants = useMemo(() => ({ borderWidth: 3, cornerSize: 12 }), []);
 
-  // Springy position — gives the ~50ms trailing lag feel.
-  const springConfig = { stiffness: 150, damping: 20 };
-  const x = useSpring(mouseX, springConfig);
-  const y = useSpring(mouseY, springConfig);
-
-  // Track mouse position.
-  useEffect(() => {
-    if (!isEnabled) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [isEnabled, mouseX, mouseY]);
-
-  // Hide / restore native cursor on body.
-  const originalCursorRef = useRef<string>('');
+  const moveCursor = useCallback((x: number, y: number) => {
+    if (!cursorRef.current) return;
+    gsap.to(cursorRef.current, { x, y, duration: 0.1, ease: 'power3.out' });
+  }, []);
 
   useEffect(() => {
-    if (typeof document === 'undefined') return;
-    if (!isEnabled) {
-      // Restore cursor if we somehow flipped isEnabled to false.
-      document.body.style.cursor = originalCursorRef.current;
-      return;
-    }
+    if (isMobile || !cursorRef.current) return;
 
-    originalCursorRef.current = document.body.style.cursor;
-    document.body.style.cursor = 'none';
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '*, *::before, *::after { cursor: none !important; }';
+    document.head.appendChild(styleEl);
+
+    const cursor = cursorRef.current;
+    cornersRef.current = cursor.querySelectorAll<HTMLDivElement>('.target-cursor-corner');
+
+    let activeTarget: Element | null = null;
+    let currentLeaveHandler: (() => void) | null = null;
+
+    const cleanupTarget = (target: Element) => {
+      if (currentLeaveHandler) {
+        target.removeEventListener('mouseleave', currentLeaveHandler);
+      }
+      currentLeaveHandler = null;
+    };
+
+    gsap.set(cursor, {
+      xPercent: -50,
+      yPercent: -50,
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    });
+
+
+    const tickerFn = () => {
+      if (!targetCornerPositionsRef.current || !cursorRef.current || !cornersRef.current) return;
+      const strength = activeStrengthRef.current.current;
+      if (strength === 0) return;
+      const cursorX = gsap.getProperty(cursorRef.current, 'x') as number;
+      const cursorY = gsap.getProperty(cursorRef.current, 'y') as number;
+      Array.from(cornersRef.current).forEach((corner, i) => {
+        const currentX = gsap.getProperty(corner, 'x') as number;
+        const currentY = gsap.getProperty(corner, 'y') as number;
+        const targetX = targetCornerPositionsRef.current![i].x - cursorX;
+        const targetY = targetCornerPositionsRef.current![i].y - cursorY;
+        const finalX = currentX + (targetX - currentX) * strength;
+        const finalY = currentY + (targetY - currentY) * strength;
+        const duration = strength >= 0.99 ? 0.2 : 0.05;
+        gsap.to(corner, { x: finalX, y: finalY, duration, ease: 'power1.out', overwrite: 'auto' });
+      });
+    };
+    tickerFnRef.current = tickerFn;
+
+    const moveHandler = (e: MouseEvent) => moveCursor(e.clientX, e.clientY);
+    window.addEventListener('mousemove', moveHandler, { passive: true });
+
+    const scrollHandler = () => {
+      if (!activeTarget || !cursorRef.current) return;
+      const mx = gsap.getProperty(cursorRef.current, 'x') as number;
+      const my = gsap.getProperty(cursorRef.current, 'y') as number;
+      const el = document.elementFromPoint(mx, my);
+      if (!el || (el !== activeTarget && el.closest('.cursor-target') !== activeTarget)) {
+        currentLeaveHandler?.();
+        return;
+      }
+      // Recalculate corner positions with updated viewport rect after scroll
+      const rect = activeTarget.getBoundingClientRect();
+      const { borderWidth, cornerSize } = constants;
+      targetCornerPositionsRef.current = [
+        { x: rect.left  - borderWidth,             y: rect.top    - borderWidth              },
+        { x: rect.right + borderWidth - cornerSize, y: rect.top    - borderWidth              },
+        { x: rect.right + borderWidth - cornerSize, y: rect.bottom + borderWidth - cornerSize },
+        { x: rect.left  - borderWidth,             y: rect.bottom + borderWidth - cornerSize },
+      ];
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+
+    const mouseDownHandler = () => {
+      gsap.to(dotRef.current, { scale: 0.7, duration: 0.3 });
+      gsap.to(cursor, { scale: 0.9, duration: 0.2 });
+    };
+    const mouseUpHandler = () => {
+      gsap.to(dotRef.current, { scale: 1, duration: 0.3 });
+      gsap.to(cursor, { scale: 1, duration: 0.2 });
+    };
+    window.addEventListener('mousedown', mouseDownHandler);
+    window.addEventListener('mouseup', mouseUpHandler);
+
+    const enterHandler = (e: MouseEvent) => {
+      let current: Element | null = e.target as Element;
+      let target: Element | null = null;
+      while (current && current !== document.body) {
+        if (current.matches('.cursor-target')) { target = current; break; }
+        current = current.parentElement;
+      }
+      if (!target || !cursorRef.current || !cornersRef.current) return;
+      if (activeTarget === target) return;
+      if (activeTarget) cleanupTarget(activeTarget);
+
+      activeTarget = target;
+      const corners = Array.from(cornersRef.current);
+      corners.forEach(c => gsap.killTweensOf(c));
+
+      const rect = target.getBoundingClientRect();
+      const { borderWidth, cornerSize } = constants;
+      const cursorX = gsap.getProperty(cursor, 'x') as number;
+      const cursorY = gsap.getProperty(cursor, 'y') as number;
+
+      targetCornerPositionsRef.current = [
+        { x: rect.left  - borderWidth,              y: rect.top    - borderWidth              },
+        { x: rect.right + borderWidth - cornerSize,  y: rect.top    - borderWidth              },
+        { x: rect.right + borderWidth - cornerSize,  y: rect.bottom + borderWidth - cornerSize },
+        { x: rect.left  - borderWidth,              y: rect.bottom + borderWidth - cornerSize },
+      ];
+
+      isActiveRef.current = true;
+      gsap.ticker.add(tickerFnRef.current!);
+      gsap.to(activeStrengthRef.current, { current: 1, duration: 0.2, ease: 'power2.out' });
+
+      corners.forEach((corner, i) => {
+        gsap.to(corner, {
+          x: targetCornerPositionsRef.current![i].x - cursorX,
+          y: targetCornerPositionsRef.current![i].y - cursorY,
+          duration: 0.2,
+          ease: 'power2.out',
+        });
+      });
+
+      const leaveHandler = () => {
+        gsap.ticker.remove(tickerFnRef.current!);
+        isActiveRef.current = false;
+        targetCornerPositionsRef.current = null;
+        gsap.set(activeStrengthRef.current, { current: 0, overwrite: true });
+        activeTarget = null;
+
+        if (cornersRef.current) {
+          const { cornerSize } = constants;
+          const positions = [
+            { x: -cornerSize * 1.5, y: -cornerSize * 1.5 },
+            { x:  cornerSize * 0.5, y: -cornerSize * 1.5 },
+            { x:  cornerSize * 0.5, y:  cornerSize * 0.5 },
+            { x: -cornerSize * 1.5, y:  cornerSize * 0.5 },
+          ];
+          const tl = gsap.timeline();
+          Array.from(cornersRef.current).forEach((c, i) => {
+            tl.to(c, { x: positions[i].x, y: positions[i].y, duration: 0.3, ease: 'power3.out' }, 0);
+          });
+        }
+
+
+        cleanupTarget(target);
+      };
+
+      currentLeaveHandler = leaveHandler;
+      target.addEventListener('mouseleave', leaveHandler);
+    };
+
+    window.addEventListener('mouseover', enterHandler as EventListener);
 
     return () => {
-      document.body.style.cursor = originalCursorRef.current;
+      if (tickerFnRef.current) gsap.ticker.remove(tickerFnRef.current);
+      window.removeEventListener('mousemove', moveHandler);
+      window.removeEventListener('mouseover', enterHandler as EventListener);
+      window.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('mousedown', mouseDownHandler);
+      window.removeEventListener('mouseup', mouseUpHandler);
+      if (activeTarget) cleanupTarget(activeTarget);
+      styleEl.remove();
+      isActiveRef.current = false;
+      targetCornerPositionsRef.current = null;
+      activeStrengthRef.current.current = 0;
     };
-  }, [isEnabled]);
+  }, [isMobile, moveCursor, constants]);
 
-  // Nothing to render on touch devices.
-  if (!isEnabled) return null;
+  if (isMobile) return null;
 
   return (
-    /*
-     * motion.div positioned at the spring-interpolated cursor coords.
-     * translateX / translateY of -50% centers the 240×240 glow on the
-     * exact cursor position.
-     *
-     * pointer-events: none — must never intercept clicks.
-     * mix-blend-mode: screen — brightens content beneath.
-     * z-index: var(--z-cursor) — sits above everything.
-     */
-    <motion.div
+    <div
+      ref={cursorRef}
       aria-hidden="true"
       style={{
-        x,
-        y,
-        translateX: '-50%',
-        translateY: '-50%',
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '240px',
-        height: '240px',
+        width: 0,
+        height: 0,
         pointerEvents: 'none',
         zIndex: 'var(--z-cursor)' as unknown as number,
-        willChange: 'transform',
-        mixBlendMode: 'screen',
-        // Soft warm radial glow — amber at center fading to transparent.
-        background:
-          'radial-gradient(circle, rgba(200,169,110,0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
+        transform: 'translate(-50%, -50%)',
       }}
     >
-      {/* Focus reticle — centered inside the glow */}
+      {/* Center dot */}
       <div
+        ref={dotRef}
         style={{
           position: 'absolute',
-          top: '50%',
           left: '50%',
+          top: '50%',
+          width: '4px',
+          height: '4px',
+          background: 'var(--color-text-primary)',
+          borderRadius: '50%',
           transform: 'translate(-50%, -50%)',
-          // Snap mix-blend-mode back to normal so the reticle
-          // renders at full opacity regardless of blend layer.
-          mixBlendMode: 'normal',
+          willChange: 'transform',
+          opacity: 0.7,
         }}
-      >
-        <FocusReticle />
-      </div>
-    </motion.div>
+      />
+      {/* Corner brackets — TL, TR, BR, BL */}
+      {[
+        { transform: 'translate(-150%, -150%)', borderRight: 'none', borderBottom: 'none' },
+        { transform: 'translate(50%, -150%)',   borderLeft:  'none', borderBottom: 'none' },
+        { transform: 'translate(50%, 50%)',     borderLeft:  'none', borderTop:    'none' },
+        { transform: 'translate(-150%, 50%)',   borderRight: 'none', borderTop:    'none' },
+      ].map((style, i) => (
+        <div
+          key={i}
+          className="target-cursor-corner"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: '12px',
+            height: '12px',
+            border: '2px solid var(--color-text-primary)',
+            opacity: 0.75,
+            willChange: 'transform',
+            ...style,
+          }}
+        />
+      ))}
+    </div>
   );
 }

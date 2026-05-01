@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import FocusPull from '@/components/animations/focus-pull';
+import SectionHeader from '@/components/ui/section-header';
 
 interface TimelineEntry {
   id: string;
   role: string;
   company: string;
   dates: string;
-  tags: string[];
-  description: string;
+  description: string[];
   defaultExpanded: boolean;
 }
 
@@ -18,29 +18,41 @@ const TIMELINE_ENTRIES: TimelineEntry[] = [
   {
     id: 'ml-lead',
     role: 'ML Research Lead',
-    company: '[Placeholder Company]',
-    dates: 'Jun 2024 – Present',
-    tags: ['Research', 'ML', 'Leadership'],
-    description: 'Placeholder description — Emraan will fill this in with real details.',
+    company: 'UTD Natural Language Processing Lab',
+    dates: 'January 2026 – Present',
+    description: [
+      'Led a team of 12 researchers producing 200+ weekly annotations to build datasets for detecting logical fallacies in political memes',
+      'Created comprehensive annotation guidelines to standardize how logical fallacies are identified across the team',
+      'Used Python to analyze annotation results and compare them with model predictions',
+      'Helped develop a structured fallacy dataset to be used by anyone conducting Natural Language Processing research once published',
+      'Contributed to a research project being submitted to the Association for Computational Linguistics (ACL)',
+    ],
     defaultExpanded: true,
   },
   {
     id: 'ml-researcher',
     role: 'ML Researcher',
-    company: '[Placeholder Company]',
-    dates: 'Jan 2024 – May 2024',
-    tags: ['Research', 'NLP'],
-    description: 'Placeholder description.',
-    defaultExpanded: false,
+    company: 'Spectra — ACM Research',
+    dates: 'January 2026 – May 2026',
+    description: [
+      'Designed and evaluated visual prompt injection attacks on multimodal AI systems to study how hidden instructions in images affect model behavior',
+      'Built a testing pipeline using Python, PyTorch, and NumPy to generate attacks, run experiments, and measure attack success rates across multiple models',
+      'Worked with open-source multimodal models from Hugging Face to benchmark vulnerabilities in models such as Gemma, Llama, and Qwen',
+      'Benchmarked attack success rates at 86-91%, then designed defense methods to reduce the attack success rate by 99%, effectively completely mitingating the problem in tests',
+      'Maintained accuracies and inference times that remained close to the baseline after applying defenses',
+    ],
+    defaultExpanded: true,
   },
   {
     id: 'utd',
     role: 'B.S. Computer Science',
     company: 'University of Texas at Dallas',
-    dates: '2022 – 2026',
-    tags: ['Education', 'CS'],
-    description: 'GPA: placeholder. Relevant coursework: placeholder.',
-    defaultExpanded: false,
+    dates: 'Expected Graduation: May 2027',
+    description: [
+      'GPA: 3.6',
+      'Relevant coursework: Artificial Intelligence, Machine Learning, Databases, Networks, Data Structures and Algorithms, Software Engineering',
+    ],
+    defaultExpanded: true,
   },
 ];
 
@@ -73,23 +85,9 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
 
   return (
     <FocusPull>
-      <div
-        style={{
-          display: 'flex',
-          gap: 'var(--space-6)',
-          position: 'relative',
-        }}
-      >
+      <div style={{ display: 'flex', gap: 'var(--space-6)', position: 'relative' }}>
         {/* Left column: reticle + connecting line */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            flexShrink: 0,
-            width: '24px',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '24px' }}>
           <div style={{ zIndex: 1 }}>
             <FocusReticle />
           </div>
@@ -108,12 +106,7 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
         </div>
 
         {/* Right column: content */}
-        <div
-          style={{
-            flex: 1,
-            paddingBottom: isLast ? '0' : 'var(--space-10)',
-          }}
-        >
+        <div style={{ flex: 1, paddingBottom: isLast ? '0' : 'var(--space-10)' }}>
           {/* Header row — clickable */}
           <button
             onClick={() => setExpanded((prev) => !prev)}
@@ -134,7 +127,7 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
             <div>
               <div
                 style={{
-                  fontFamily: 'var(--font-display)',
+                  fontFamily: 'var(--font-mono)',
                   fontSize: 'var(--text-lg)',
                   color: 'var(--color-text-primary)',
                   lineHeight: 'var(--leading-tight)',
@@ -160,33 +153,12 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
                   fontFamily: 'var(--font-mono)',
                   fontSize: 'var(--text-xs)',
                   color: 'var(--color-text-secondary)',
-                  marginBottom: 'var(--space-3)',
                 }}
               >
                 {entry.dates}
               </div>
-              {/* Tags */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                {entry.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 'var(--text-xs)',
-                      color: 'var(--color-accent)',
-                      border: '1px solid var(--color-accent)',
-                      borderRadius: '2px',
-                      padding: '1px var(--space-2)',
-                      letterSpacing: '0.08em',
-                    }}
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
             </div>
 
-            {/* Expand indicator */}
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.25, ease: 'easeInOut' }}
@@ -216,19 +188,25 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
                 transition={{ duration: 0.35, ease: 'easeInOut' }}
                 style={{ overflow: 'hidden' }}
               >
-                <p
+                <ul
                   style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-base)',
                     color: 'var(--color-text-secondary)',
                     lineHeight: 'var(--leading-body)',
                     marginTop: 'var(--space-4)',
-                    paddingLeft: 'var(--space-1)',
+                    paddingLeft: 'var(--space-5)',
                     borderLeft: '2px solid var(--color-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                    listStyle: 'disc',
                   }}
                 >
-                  {entry.description}
-                </p>
+                  {entry.description.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
               </motion.div>
             )}
           </AnimatePresence>
@@ -243,36 +221,12 @@ export default function Experience() {
     <section
       id="experience"
       style={{
-        padding: 'var(--space-20) var(--space-8)',
-        maxWidth: '860px',
-        margin: '0 auto',
+        padding: 'var(--section-pad-y) var(--section-pad-x)',
       }}
     >
-      {/* Frame line */}
-      <div
-        style={{
-          borderTop: '1px solid var(--color-border)',
-          marginBottom: 'var(--space-10)',
-        }}
-      />
+      <SectionHeader label="PRODUCTION CREDITS" heading="[Experience]" />
 
-      {/* Section heading */}
-      <h2
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--color-accent)',
-          letterSpacing: 'var(--tracking-wide)',
-          textTransform: 'uppercase',
-          fontVariant: 'small-caps',
-          marginBottom: 'var(--space-12)',
-        }}
-      >
-        Production History
-      </h2>
-
-      {/* Timeline */}
-      <div>
+      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         {TIMELINE_ENTRIES.map((entry, index) => (
           <TimelineEntryRow
             key={entry.id}

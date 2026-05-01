@@ -1,210 +1,205 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useMotionTemplate,
+} from 'framer-motion';
 import Countdown from './countdown';
 import SpoolUp from './spool-up';
-import IrisOpen from '../transitions/iris';
 
 /**
  * IntroSequence
  *
- * Full-viewport overlay that plays once on first visit (or on every
- * fresh session if the user clears localStorage).
+ * Countdown (SMPTE leader) → brief reveal fade → SpoolUp (content reels
+ * past a fixed projector gate via transform) → done.
  *
- * First visit:  Countdown (5s) → white flash (80ms) → SpoolUp → lock-in
- * Return visit: 1-second IrisOpen → done
- * Always:       [ SKIP INTRO ] button in top-right corner
- *
- * localStorage key: 'portfolio_visited'
+ * The black curtain fully fades out BEFORE the spool animation begins,
+ * so the first rapid pass is visible. The translating wrapper gets a
+ * motion-blur filter during the fast passes, and body.is-fast-scroll
+ * is toggled so the perforations also blur.
  */
 
 interface IntroSequenceProps {
   children: React.ReactNode;
 }
 
-type Stage =
-  | 'idle'          // detecting visit type
-  | 'countdown'     // SMPTE leader
-  | 'flash'         // 80ms white flash
-  | 'spoolup'       // film threading
-  | 'lockin'        // spring + flicker
-  | 'iris-return'   // 1-second iris open for return visits
-  | 'done';         // overlay removed
+type Stage = 'idle' | 'countdown' | 'reveal' | 'spoolup' | 'done';
+
+const REVEAL_MS = 140;
 
 export default function IntroSequence({ children }: IntroSequenceProps) {
   const [stage, setStage] = useState<Stage>('idle');
-  const [isFirstVisit, setIsFirstVisit] = useState(false);
-  const [childBrightness, setChildBrightness] = useState(1);
   const [overlayVisible, setOverlayVisible] = useState(true);
+  const stopSpoolRef = useRef<(() => void) | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const pageY = useMotionValue(0);
+  const blurY = useMotionValue(0);
+  const filter = useMotionTemplate`blur(${blurY}px)`;
 
-  // Determine visit type on mount
   useEffect(() => {
-    const visited = localStorage.getItem('portfolio_visited');
-    if (!visited) {
-      setIsFirstVisit(true);
-      setStage('countdown');
-    } else {
-      setIsFirstVisit(false);
-      setStage('iris-return');
+    if (typeof window === 'undefined') return;
+    try {
+      window.history.scrollRestoration = 'manual';
+    } catch {
+      /* older browsers — no-op */
     }
+    window.scrollTo(0, 0);
+    setStage('countdown');
   }, []);
 
-  // Lock-in brightness flicker (2-3 frames)
-  const runLockInFlicker = useCallback(() => {
-    const FLICKER_FRAMES = [0.6, 1, 0.7, 1, 0.85, 1];
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i < FLICKER_FRAMES.length) {
-        setChildBrightness(FLICKER_FRAMES[i]);
-        i++;
-      } else {
-        clearInterval(interval);
-        setChildBrightness(1);
-        // Mark as visited and remove overlay
-        localStorage.setItem('portfolio_visited', '1');
-        setTimeout(() => {
-          setStage('done');
-          setOverlayVisible(false);
-        }, 100);
-      }
-    }, 48); // ~3 frames at 60fps
+  const getTravel = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return 0;
+    return Math.max(el.scrollHeight - window.innerHeight, 0);
+  }, []);
+
+  const lockScroll = useCallback(() => {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }, []);
+
+  const unlockScroll = useCallback(() => {
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.classList.remove('is-fast-scroll');
+    window.scrollTo(0, 0);
   }, []);
 
   const handleCountdownComplete = useCallback(() => {
-    setStage('flash');
-    // White flash for 80ms
-    setTimeout(() => {
+    lockScroll();
+    setStage('reveal');
+    // Let the curtain fully fade before any content motion begins.
+    window.setTimeout(() => {
+      document.body.classList.add('is-fast-scroll');
       setStage('spoolup');
-    }, 80);
+    }, REVEAL_MS);
+  }, [lockScroll]);
+
+  const handleSettleStart = useCallback(() => {
+    // Drop the perforation blur in sync with the content blur as the
+    // final decelerating pass begins.
+    document.body.classList.remove('is-fast-scroll');
   }, []);
 
   const handleSpoolUpComplete = useCallback(() => {
-    setStage('lockin');
-    runLockInFlicker();
-  }, [runLockInFlicker]);
-
-  const handleIrisReturnComplete = useCallback(() => {
+    unlockScroll();
     setStage('done');
     setOverlayVisible(false);
-  }, []);
+  }, [unlockScroll]);
 
   const handleSkip = useCallback(() => {
-    setChildBrightness(1);
-    localStorage.setItem('portfolio_visited', '1');
+    stopSpoolRef.current?.();
+    pageY.set(0);
+    blurY.set(0);
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.classList.remove('is-fast-scroll');
     setStage('done');
     setOverlayVisible(false);
-  }, []);
+    // Force scroll to top after paint so the transform reset is applied first.
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [pageY, blurY]);
 
-  // Children are always rendered; the overlay sits on top
-  const childrenVisible = stage !== 'idle' && stage !== 'countdown' && stage !== 'flash';
+  useEffect(() => {
+    if (stage === 'done' || stage === 'idle') return;
+    const onKey = () => handleSkip();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [stage, handleSkip]);
 
   return (
     <>
-      {/* Page content — always in DOM, revealed after intro */}
       <motion.div
-        animate={{
-          filter: `brightness(${childBrightness})`,
+        ref={contentRef}
+        style={{
+          y: pageY,
+          filter,
+          minHeight: '100%',
+          willChange: 'transform, filter',
         }}
-        transition={{ duration: 0 }}
-        style={{ minHeight: '100%' }}
       >
         {children}
       </motion.div>
 
-      {/* Intro overlay */}
       <AnimatePresence>
         {overlayVisible && (
-          <div
+          <motion.div
+            key="intro-overlay"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            onClick={handleSkip}
             style={{
               position: 'fixed',
               inset: 0,
               zIndex: 'var(--z-intro)' as unknown as number,
               pointerEvents: stage === 'done' ? 'none' : 'auto',
+              cursor: 'pointer',
             }}
           >
-            {/* SKIP INTRO button — always visible during intro */}
-            <button
-              onClick={handleSkip}
-              style={{
-                position: 'fixed',
-                top: '1.5rem',
-                right: '1.5rem',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.75rem',
-                color: 'var(--color-accent)',
-                background: 'transparent',
-                border: '1px solid var(--color-accent)',
-                padding: '0.375rem 0.75rem',
-                cursor: 'pointer',
-                letterSpacing: '0.1em',
-                zIndex: 10,
+            {/* Black curtain — opaque during countdown, fades to
+                transparent during reveal, fully gone by spoolup. */}
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: stage === 'countdown' || stage === 'idle' ? 1 : 0,
               }}
-              aria-label="Skip intro"
-            >
-              [ SKIP INTRO ]
-            </button>
+              transition={{ duration: REVEAL_MS / 1000, ease: 'easeOut' }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'var(--color-bg)',
+                pointerEvents: 'none',
+              }}
+              aria-hidden="true"
+            />
 
-            {/* Countdown stage */}
             {stage === 'countdown' && (
               <Countdown onComplete={handleCountdownComplete} />
             )}
 
-            {/* White flash stage */}
-            {stage === 'flash' && (
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  backgroundColor: '#ffffff',
-                  zIndex: 1,
+            {stage === 'spoolup' && (
+              <SpoolUp
+                pageY={pageY}
+                blurY={blurY}
+                getTravel={getTravel}
+                onComplete={handleSpoolUpComplete}
+                onSettleStart={handleSettleStart}
+                registerStop={(stop) => {
+                  stopSpoolRef.current = stop;
                 }}
-                aria-hidden="true"
               />
             )}
 
-            {/* SpoolUp stage */}
-            {(stage === 'spoolup' || stage === 'lockin') && (
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  backgroundColor: 'var(--color-bg)',
-                  overflow: 'hidden',
-                  zIndex: 1,
-                }}
-              >
-                <SpoolUp onComplete={handleSpoolUpComplete}>
-                  {/* Show a blurred preview of the children during spool-up */}
-                  <div style={{ pointerEvents: 'none' }}>
-                    {children}
-                  </div>
-                </SpoolUp>
-              </div>
-            )}
-
-            {/* Return visit: iris open */}
-            {stage === 'iris-return' && (
-              <div
-                style={{
-                  position: 'fixed',
-                  inset: 0,
-                  backgroundColor: '#000000',
-                  zIndex: 1,
-                }}
-              >
-                <IrisOpen
-                  onComplete={handleIrisReturnComplete}
-                  duration={1000}
-                />
-              </div>
-            )}
-          </div>
+            {/* Press anything to skip — rendered last so it layers above countdown */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: stage === 'countdown' || stage === 'spoolup' ? 0.75 : 0 }}
+              transition={{ duration: 0.4, delay: 0.8 }}
+              style={{
+                position: 'fixed',
+                bottom: '33.33vh',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.65rem',
+                letterSpacing: '0.18em',
+                color: 'var(--color-text-primary)',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                whiteSpace: 'nowrap',
+                zIndex: 200,
+              }}
+              aria-hidden="true"
+            >
+              PRESS ANYTHING TO SKIP
+            </motion.p>
+          </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Ensure content is fully visible once done */}
-      {!overlayVisible && !childrenVisible && null}
     </>
   );
 }

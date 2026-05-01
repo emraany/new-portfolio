@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getAllRecommendations, addRecommendation } from '@/lib/supabase';
+import {
+  addRecommendationToTmdbList,
+  getRecommendationsFromTmdbList,
+} from '@/lib/tmdb-list';
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const recs = await getAllRecommendations();
+    const recs = await getRecommendationsFromTmdbList();
     return NextResponse.json(recs, { status: 200 });
   } catch (err) {
     console.error('GET /api/recommendations error:', err);
@@ -29,9 +32,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 }
       );
     }
-    if (typeof poster_path !== 'string' || !poster_path.trim()) {
+    if (typeof poster_path !== 'string') {
       return NextResponse.json(
-        { error: 'poster_path is required and must be a non-empty string' },
+        { error: 'poster_path is required and must be a string' },
         { status: 400 }
       );
     }
@@ -39,16 +42,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     const noteValue: string | null =
       typeof note === 'string' && note.trim() ? note.trim() : null;
 
-    const created = await addRecommendation({
-      tmdb_id,
-      title: title.trim(),
-      poster_path: poster_path.trim(),
-      note: noteValue,
-    });
+    await addRecommendationToTmdbList(tmdb_id, noteValue);
 
-    return NextResponse.json(created, { status: 201 });
+    return NextResponse.json(
+      {
+        tmdb_id,
+        title: title.trim(),
+        poster_path: poster_path.trim(),
+        note: noteValue,
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error('POST /api/recommendations error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === 'development' ? message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

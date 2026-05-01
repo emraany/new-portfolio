@@ -1,14 +1,13 @@
 import IntroSequence from '@/components/intro/intro-sequence';
 import Hero from '@/components/sections/hero';
 import About from '@/components/sections/about';
-import NowPlaying from '@/components/sections/now-playing';
 import Filmography from '@/components/sections/filmography';
-import Intermission from '@/components/sections/intermission';
 import Experience from '@/components/sections/experience';
 import Skills from '@/components/sections/skills';
 import Archive from '@/components/sections/archive';
 import ScreeningRoom from '@/components/sections/screening-room';
-import Contact from '@/components/sections/contact';
+import { ReelBumper } from '@/components/ui/reel-bumper';
+import EndCredits from '@/components/sections/end-credits';
 
 export default function Home() {
   return (
@@ -16,14 +15,17 @@ export default function Home() {
       <main>
         <Hero />
         <About />
-        <NowPlaying />
+        <ReelBumper from={1} to={2} />
         <Filmography />
-        <Intermission />
+        <ReelBumper from={2} to={3} />
         <Experience />
         <Skills />
+        <ReelBumper from={3} to={4} />
         <Archive />
+        <ReelBumper from={4} to={5} />
         <ScreeningRoom />
-        <Contact />
+        <ReelBumper from={5} to={6} />
+        <EndCredits />
       </main>
     </IntroSequence>
   );

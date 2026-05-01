@@ -4,3 +4,11 @@ node_modules/
 .env
 *.log
 .DS_Store
+tsconfig.tsbuildinfo
+screenshots/
+info.md
+my-portfolio-is-looking-floating-yao.md
+.claude/
+CLAUDE.md
+AGENTS.md
+PLAN_PROMPT.md

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Inter, JetBrains_Mono } from 'next/font/google';
+import { Archivo_Narrow, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import FilmGrain from '@/components/persistent/film-grain';
 import FilmPerforations from '@/components/persistent/film-perforations';
 import ScrollDriver from '@/components/persistent/scroll-driver';
+import ScrollReset from '@/components/persistent/scroll-reset';
 import ProjectorCursor from '@/components/persistent/projector-cursor';
 import FrameCounter from '@/components/persistent/frame-counter';
 import TicketNav from '@/components/persistent/ticket-nav';
@@ -12,13 +13,13 @@ import AmbientType from '@/components/persistent/ambient-type';
 /* ----------------------------------------------------------------
    Google Fonts — loaded at build time via next/font.
    Each font exposes a CSS variable that globals.css picks up
-   via var(--font-playfair), var(--font-inter), var(--font-jetbrains).
+   via var(--font-archivo), var(--font-inter), var(--font-jetbrains).
    ---------------------------------------------------------------- */
 
-const playfair = Playfair_Display({
+const archivo = Archivo_Narrow({
   subsets: ['latin'],
-  weight: ['700', '900'],
-  variable: '--font-playfair',
+  weight: ['500', '700'],
+  variable: '--font-archivo',
   display: 'swap',
 });
 
@@ -60,13 +61,16 @@ export default function RootLayout({
     <html
       lang="en"
       className={[
-        playfair.variable,
+        archivo.variable,
         inter.variable,
         jetbrainsMono.variable,
         'h-full antialiased',
       ].join(' ')}
     >
       <body className="min-h-full overflow-x-hidden">
+        {/* Refresh always lands on the title page — disable the browser's
+            automatic scroll restoration on mount and reset to (0, 0). */}
+        <ScrollReset />
         {/* --------------------------------------------------------
             Persistent film-strip elements.
             These sit above content at all times (z-index defined
@@ -82,7 +86,7 @@ export default function RootLayout({
         {/* Drives --scroll-y CSS var and fast-scroll class on body */}
         <ScrollDriver />
 
-        {/* Custom focus-reticle cursor with amber glow — desktop only */}
+        {/* Custom focus-reticle cursor — desktop only */}
         <ProjectorCursor />
 
         {/* Section name ghost text — fixed, full-viewport, pointer-events: none */}

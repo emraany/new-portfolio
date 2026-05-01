@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, type Variants, type Easing } from 'framer-motion';
+import SectionHeader from '@/components/ui/section-header';
 
 interface SkillCategory {
   heading: string;
@@ -9,24 +10,16 @@ interface SkillCategory {
 
 const SKILL_CATEGORIES: SkillCategory[] = [
   {
-    heading: 'Directed By',
-    members: 'TypeScript, Python, SQL, Bash, Java',
+    heading: 'Programming Languages',
+    members: 'Java, Python, JavaScript, TypeScript, C, C++, HTML5, CSS, SQL, LaTeX',
   },
   {
-    heading: 'Produced By',
-    members: 'React, Next.js, FastAPI, PyTorch, scikit-learn, Framer Motion, Tailwind CSS',
+    heading: 'Frameworks & Libraries',
+    members: 'React, Next.js, Spring Boot, Flask, Pandas, PyTorch, NumPy, FastAPI, Tailwind CSS, Recharts',
   },
   {
-    heading: 'Director of Photography',
-    members: 'NLP, Computer Vision, Graph Neural Networks, Transformers, LLMs',
-  },
-  {
-    heading: 'Production Design',
-    members: 'PostgreSQL, Supabase, Redis, Docker, AWS',
-  },
-  {
-    heading: 'Special Effects',
-    members: 'Git, Figma, Linear, Vercel, Jupyter',
+    heading: 'Databases & Tools',
+    members: 'Git, GitHub, PostgreSQL, Snowflake, Node.js, MySQL, MongoDB, Linux, Vercel, Railway, JSON, YAML',
   },
 ];
 
@@ -37,11 +30,7 @@ const rowVariants: Variants = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.4,
-      ease: EASE_OUT,
-    },
+    transition: { delay: i * 0.05, duration: 0.4, ease: EASE_OUT },
   }),
 };
 
@@ -50,35 +39,49 @@ export default function Skills() {
     <section
       id="skills"
       style={{
-        padding: 'var(--space-20) var(--space-8)',
-        maxWidth: '860px',
-        margin: '0 auto',
+        padding: 'var(--section-pad-y) var(--section-pad-x)',
       }}
     >
-      {/* Frame line */}
-      <div
-        style={{
-          borderTop: '1px solid var(--color-border)',
-          marginBottom: 'var(--space-10)',
-        }}
-      />
+      <style>{`
+        .skills-row {
+          display: flex;
+          align-items: baseline;
+          gap: var(--space-6);
+          padding: var(--space-5) 0;
+          border-bottom: 1px solid var(--color-border);
+        }
+        .skills-row__heading {
+          font-family: var(--font-mono);
+          font-size: var(--text-xs);
+          color: var(--color-accent);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          font-variant: small-caps;
+          flex-shrink: 0;
+          width: 200px;
+          line-height: var(--leading-body);
+        }
+        .skills-row__members {
+          font-family: var(--font-mono);
+          font-size: var(--text-base);
+          color: var(--color-text-secondary);
+          line-height: var(--leading-body);
+          flex: 1;
+        }
+        @media (max-width: 768px) {
+          .skills-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-2);
+          }
+          .skills-row__heading {
+            width: auto;
+          }
+        }
+      `}</style>
 
-      {/* Section heading */}
-      <h2
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-xs)',
-          color: 'var(--color-accent)',
-          letterSpacing: 'var(--tracking-wide)',
-          textTransform: 'uppercase',
-          fontVariant: 'small-caps',
-          marginBottom: 'var(--space-10)',
-        }}
-      >
-        The Crew
-      </h2>
+      <SectionHeader label="THE CREW" heading="[Skills]" />
 
-      {/* Cast list */}
       <div>
         {SKILL_CATEGORIES.map((category, index) => (
           <motion.div
@@ -89,54 +92,9 @@ export default function Skills() {
             viewport={{ once: true }}
             variants={rowVariants}
           >
-            {/* Separator above each row (including the first, sits above heading) */}
-            {index === 0 && (
-              <div
-                style={{
-                  borderTop: '1px solid var(--color-border)',
-                  marginBottom: 0,
-                }}
-              />
-            )}
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 'var(--space-6)',
-                padding: 'var(--space-5) 0',
-                borderBottom: '1px solid var(--color-border)',
-              }}
-            >
-              {/* Category label */}
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-accent)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  fontVariant: 'small-caps',
-                  flexShrink: 0,
-                  width: '160px',
-                  lineHeight: 'var(--leading-body)',
-                }}
-              >
-                {category.heading}
-              </div>
-
-              {/* Skills */}
-              <div
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 'var(--leading-body)',
-                  flex: 1,
-                }}
-              >
-                {category.members}
-              </div>
+            <div className="skills-row">
+              <div className="skills-row__heading">{category.heading}</div>
+              <div className="skills-row__members">{category.members}</div>
             </div>
           </motion.div>
         ))}
