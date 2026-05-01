@@ -335,7 +335,6 @@ export default function TicketNav() {
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 'var(--z-nav)' as unknown as number,
-          display: 'flex',
           alignItems: 'stretch',
           background: 'rgba(20, 20, 20, 0.85)',
           backdropFilter: 'blur(8px)',
