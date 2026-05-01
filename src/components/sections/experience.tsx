@@ -196,7 +196,6 @@ function TimelineEntryRow({ entry, isLast }: EntryProps) {
                     lineHeight: 'var(--leading-body)',
                     marginTop: 'var(--space-4)',
                     paddingLeft: 'var(--space-5)',
-                    borderLeft: '2px solid var(--color-border)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 'var(--space-2)',
