@@ -463,6 +463,17 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                     Source Code
                   </a>
                 )}
+                {project.videoUrl && (
+                  <a
+                    href={project.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-target"
+                    style={ticketButtonStyle('secondary')}
+                  >
+                    Watch Demo
+                  </a>
+                )}
               </div>
             </div>
           </motion.aside>

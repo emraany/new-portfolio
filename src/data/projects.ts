@@ -10,6 +10,7 @@ export interface Project {
   productionNotes?: string;
   liveUrl?: string;
   repoUrl?: string;
+  videoUrl?: string;
   award?: string;
   featured: boolean;
 }
@@ -34,6 +35,7 @@ export const projects: Project[] = [
     synopsis: 'A full-stack Next.js + TypeScript platform that acts as a single command center to aid data-center management. It features AI-powered ticket creation directly from Slack and email, a multi-constraint routing engine that accounts for floor elevation, elevators, and technician health, ticket bundling using cosine similarity on task descriptions to save technicians time, and predictive inventory forecasting based on real-time usage trends. Includes interactive 3D rack visualization, role-based views, and a polished dark-theme UI designed for large-scale infrastructure.',
     starring: ['Next.js', 'React', 'MongoDB', 'Tailwind CSS', 'Three.js'],
     repoUrl: 'https://github.com/emraany/hackutd2025',
+    videoUrl: 'https://www.youtube.com/watch?v=sbdnZRNmm8o',
     productionNotes: 'Won 3rd Place at HackUTD 2025 — a hackathon with over 1200 competitors and the largest 24 hour hackathon in North America',
     featured: false,
   },
