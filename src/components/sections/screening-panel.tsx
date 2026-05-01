@@ -452,6 +452,17 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                     View Live
                   </a>
                 )}
+                {project.videoUrl && (
+                  <a
+                    href={project.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-target"
+                    style={ticketButtonStyle('primary')}
+                  >
+                    Watch Demo
+                  </a>
+                )}
                 {project.repoUrl && (
                   <a
                     href={project.repoUrl}
@@ -461,17 +472,6 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                     style={ticketButtonStyle('secondary')}
                   >
                     Source Code
-                  </a>
-                )}
-                {project.videoUrl && (
-                  <a
-                    href={project.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-target"
-                    style={ticketButtonStyle('secondary')}
-                  >
-                    Watch Demo
                   </a>
                 )}
               </div>
