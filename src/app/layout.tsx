@@ -1,5 +1,13 @@
 import type { Metadata } from 'next';
-import { Archivo_Narrow, Inter, JetBrains_Mono } from 'next/font/google';
+import {
+  Archivo_Narrow,
+  Inter,
+  JetBrains_Mono,
+  IBM_Plex_Mono,
+  Special_Elite,
+  Marcellus,
+  Scheherazade_New,
+} from 'next/font/google';
 import './globals.css';
 import FilmGrain from '@/components/persistent/film-grain';
 import FilmPerforations from '@/components/persistent/film-perforations';
@@ -38,6 +46,48 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 /* ----------------------------------------------------------------
+   Project-preview fonts.
+
+   The animated project previews in the Filmography grid render each
+   project's real UI, so they need each project's real typeface — the
+   previews live on this page, not inside those apps, so the fonts have
+   to be loaded here. Weights are kept to the single cut each preview
+   actually draws with.
+   ---------------------------------------------------------------- */
+
+/* The Conflict Coordinate — frontend/index.html */
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-plex-mono',
+  display: 'swap',
+});
+
+/* The Conflict Coordinate — tokens.ts `fonts.stamp` */
+const specialElite = Special_Elite({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-special-elite',
+  display: 'swap',
+});
+
+/* QuranScope — layout.tsx `--font-brand` */
+const marcellus = Marcellus({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-marcellus',
+  display: 'swap',
+});
+
+/* QuranScope — layout.tsx `--font-arabic` */
+const scheherazade = Scheherazade_New({
+  subsets: ['arabic'],
+  weight: '400',
+  variable: '--font-arabic',
+  display: 'swap',
+});
+
+/* ----------------------------------------------------------------
    Metadata
    ---------------------------------------------------------------- */
 
@@ -64,6 +114,10 @@ export default function RootLayout({
         archivo.variable,
         inter.variable,
         jetbrainsMono.variable,
+        plexMono.variable,
+        specialElite.variable,
+        marcellus.variable,
+        scheherazade.variable,
         'h-full antialiased',
       ].join(' ')}
     >
