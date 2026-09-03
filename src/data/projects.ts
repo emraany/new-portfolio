@@ -27,8 +27,8 @@ export const projects: Project[] = [
     featured: true,
   },
   {
-    slug: 'dc-daddy',
-    title: 'DC Daddy',
+    slug: 'datacenter-operations-platform',
+    title: 'Datacenter Operations Platform',
     year: 2025,
     genre: 'Infrastructure / AI',
     logline: 'Centralizing and simplifying complex data-center operations into one intuitive platform.',
