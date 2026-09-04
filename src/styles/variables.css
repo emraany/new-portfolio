@@ -105,11 +105,14 @@
   --perf-gap:             22px;   /* vertical gap between holes */
   --perf-pattern-height:  58px;   /* hole-height + gap = one repeat unit */
   --perf-border:          1px solid var(--color-border);
+  /* One full pattern-height of travel, at 144px/s. Derived from the
+     height, so the two stay in step: change the pattern and the drift
+     keeps its speed instead of silently changing it.               */
+  --perf-drift-duration:  0.403s;
 
-  /* Updated by JavaScript on every scroll event */
+  /* Written by ScrollEngine, coalesced to one write per scrolled frame.
+     Read by AmbientType's parallax transform.                       */
   --scroll-y: 0px;
-  /* Driven by ScrollDriver — feeds film-strip background-position-y */
-  --perf-position: 0px;
 
   /* ----------------------------------------------------------
      Z-INDEX LAYERS
@@ -172,6 +175,8 @@
     --perf-hole-height:    22px;
     --perf-gap:            21px;
     --perf-pattern-height: 43px;
+    /* Shorter tile, same 144px/s crawl. */
+    --perf-drift-duration: 0.299s;
 
     /* Tighter section gutters so content has room next to the
        perforation strips on narrow viewports. */

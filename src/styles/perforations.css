@@ -3,11 +3,20 @@
    Left and right edge strips that simulate a physical film
    strip being pulled through a projector gate.
 
-   SCROLL BEHAVIOR
-   ---------------
-   ScrollDriver writes --perf-position to :root every animation
-   frame. The strip drifts forward at a constant idle baseline,
-   independent of scroll.
+   DRIFT BEHAVIOR
+   --------------
+   The strip crawls forward at a constant speed, independent of
+   scroll — a projector pulls film at a steady rate whether or not
+   the viewer is doing anything.
+
+   That drift used to be driven from JavaScript: a permanent rAF
+   loop wrote --perf-position to :root every frame, which meant a
+   motionless page still burned a frame budget AND invalidated
+   style for the whole document 60 times a second. A constant,
+   linear, infinite motion is precisely what @keyframes is for, so
+   it is one now — same direction, same speed (144px/s, which is
+   the old 2.4px/frame at 60Hz), no JavaScript, and the browser
+   throttles it on its own when the tab is hidden.
 
    FRAME LINES
    -----------
@@ -37,11 +46,18 @@
   background-repeat: repeat-y;
   background-size: var(--perf-strip-width) var(--perf-pattern-height);
 
-  /* Position is driven by ScrollDriver via --perf-position — a
-     constant forward drift independent of scroll.                  */
+  /* Constant forward drift. Travelling exactly one pattern height
+     per cycle is what makes the loop seamless — the tile lands back
+     on itself, so there is no seam to see at the wrap.             */
   background-position-x: center;
-  background-position-y: var(--perf-position, 0px);
+  background-position-y: 0;
+  animation: perf-drift var(--perf-drift-duration) linear infinite;
   will-change: background-position;
+}
+
+@keyframes perf-drift {
+  from { background-position-y: 0; }
+  to   { background-position-y: calc(-1 * var(--perf-pattern-height)); }
 }
 
 /* ------------------------------------------------------------------
@@ -131,13 +147,13 @@
 }
 
 /* ------------------------------------------------------------------
-   Reduced-motion: ScrollDriver pins --perf-position to 0px and skips
-   updates, so the strips simply hold still. Drop the will-change hint
-   since we're not animating.
+   Reduced-motion: the strips hold still. Drop the will-change hint
+   too, since nothing is animating.
    ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
   .film-strip {
+    animation: none;
     will-change: auto;
   }
 }

@@ -118,7 +118,11 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
           y: pageY,
           filter,
           minHeight: '100%',
-          willChange: 'transform, filter',
+          /* Released once the intro is over. `will-change` is a promise that
+             a property is about to animate; left on, it pins the entire page
+             to its own composited layer with a filter hint for the whole
+             session, long after the one thing that needed it has finished. */
+          willChange: stage === 'done' ? 'auto' : 'transform, filter',
         }}
       >
         {children}

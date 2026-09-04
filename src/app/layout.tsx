@@ -11,7 +11,7 @@ import {
 import './globals.css';
 import FilmGrain from '@/components/persistent/film-grain';
 import FilmPerforations from '@/components/persistent/film-perforations';
-import ScrollDriver from '@/components/persistent/scroll-driver';
+import ScrollEngine from '@/components/persistent/scroll-provider';
 import ScrollReset from '@/components/persistent/scroll-reset';
 import ProjectorCursor from '@/components/persistent/projector-cursor';
 import FrameCounter from '@/components/persistent/frame-counter';
@@ -137,8 +137,10 @@ export default function RootLayout({
         {/* Left & right perforation strips */}
         <FilmPerforations />
 
-        {/* Drives --scroll-y CSS var and fast-scroll class on body */}
-        <ScrollDriver />
+        {/* The site's single scroll subscription: publishes the current
+            section and the HUD frame count, and writes --scroll-y. Nothing
+            runs while the page is still. */}
+        <ScrollEngine />
 
         {/* Custom focus-reticle cursor — desktop only */}
         <ProjectorCursor />

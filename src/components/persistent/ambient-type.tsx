@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { useScrollProgress } from '@/hooks/useScrollProgress';
+import { useCurrentSection } from '@/components/persistent/scroll-provider';
 
 // ---------------------------------------------------------------------------
 // Section → ambient word map
@@ -16,7 +16,6 @@ const SECTION_WORDS: Record<string, string> = {
   archive:          'OFF-SCREEN',
   'screening-room': 'CINEMA',
   credits:          'FIN',
-  contact:          'FIN',
 };
 
 const DEFAULT_WORD = 'DIRECTOR';
@@ -26,7 +25,7 @@ const DEFAULT_WORD = 'DIRECTOR';
 // ---------------------------------------------------------------------------
 
 export default function AmbientType() {
-  const { currentSection } = useScrollProgress();
+  const currentSection = useCurrentSection();
 
   const word = SECTION_WORDS[currentSection] ?? DEFAULT_WORD;
 

@@ -14,7 +14,8 @@
  * Hidden entirely on screens narrower than 768px.
  */
 
-import { useScrollProgress } from '@/hooks/useScrollProgress';
+import { useCurrentSection, useScrollFrame } from '@/components/persistent/scroll-provider';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 /* ----------------------------------------------------------------
    Section → reel number mapping
@@ -29,7 +30,6 @@ const SECTION_REEL_MAP: Record<string, string> = {
   'archive':        '06',
   'screening-room': '07',
   'credits':        '08',
-  'contact':        '09',
 };
 
 function padFrame(n: number): string {
@@ -41,10 +41,19 @@ function padFrame(n: number): string {
    ---------------------------------------------------------------- */
 
 export default function FrameCounter() {
-  const { scrollY, currentSection } = useScrollProgress();
+  const currentSection = useCurrentSection();
+  const frameCount = useScrollFrame();
+
+  /* The CSS below hides this on phones, which is enough to make it
+     invisible but not enough to make it free — it still mounted and still
+     held a live scroll subscription on every phone. The media query stays
+     (it is what keeps the first paint identical), and this unmounts the
+     component once we actually know the viewport. */
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  if (isDesktop === false) return null;
 
   const reel = SECTION_REEL_MAP[currentSection] ?? '01';
-  const frame = padFrame(Math.floor(scrollY / 10) % 9999);
+  const frame = padFrame(frameCount);
 
   return (
     <>

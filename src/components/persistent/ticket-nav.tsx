@@ -24,7 +24,7 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useScrollProgress } from '@/hooks/useScrollProgress';
+import { useCurrentSection } from '@/components/persistent/scroll-provider';
 
 /* ----------------------------------------------------------------
    Navigation sections
@@ -309,7 +309,7 @@ function MobileDrawer({ isOpen, activeSection, onClose, onNavigate }: MobileDraw
    ---------------------------------------------------------------- */
 
 export default function TicketNav() {
-  const { currentSection } = useScrollProgress();
+  const currentSection = useCurrentSection();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleNavigate = useCallback((id: string) => {

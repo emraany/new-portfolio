@@ -4,11 +4,10 @@
  * FilmPerforations
  *
  * Renders the left and right perforation strips targeted by
- * perforations.css. The scroll animation is driven by the
- * --scroll-y CSS custom property set by ScrollDriver, which
- * perforations.css reads via background-position-y.
+ * perforations.css. The constant forward drift is a CSS keyframe
+ * animation (`perf-drift`) defined there.
  *
- * No JavaScript animation runs here — it is all CSS.
+ * No JavaScript runs here at all — not on mount, not per frame.
  */
 
 const EDGE_CODE = 'EMRAAN-Y · 2026 · 24fps · REEL 01';
