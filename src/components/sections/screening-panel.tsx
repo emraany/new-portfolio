@@ -87,7 +87,7 @@ function ImageLightbox({
             }}
           >
             <Image
-              src={`/posters/${project.slug}.png`}
+              src={`/posters/${project.slug}.webp`}
               alt={`${project.title} — full view`}
               fill
               sizes="min(900px, 90vw)"
@@ -302,7 +302,7 @@ export default function ScreeningPanel({ project, onClose }: ScreeningPanelProps
                 >
                   <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                     <Image
-                      src={`/posters/${project.slug}.png`}
+                      src={`/posters/${project.slug}.webp`}
                       alt={`${project.title} project poster`}
                       fill
                       sizes="(max-width: 768px) 100vw, 520px"

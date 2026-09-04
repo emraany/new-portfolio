@@ -94,7 +94,7 @@ export default function ProjectPreview({
   return (
     <div ref={ref} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       <Image
-        src={`/posters/${project.slug}.png`}
+        src={`/posters/${project.slug}.webp`}
         alt={project.title}
         fill
         sizes="(max-width: 768px) 100vw, 33vw"
