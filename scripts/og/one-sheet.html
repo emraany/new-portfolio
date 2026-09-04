@@ -1,0 +1,124 @@
+<!--
+  OpenGraph one-sheet — source for public/og/one-sheet.jpg
+
+  Authored as HTML rather than generated with next/og so it can use the
+  site's real typefaces (Archivo Narrow + JetBrains Mono) and its real
+  perforation, grain and vignette treatments, instead of approximating them
+  with whatever a rasteriser happens to have.
+
+  To regenerate:
+    1. serve this directory over http (a file:// URL will not load the fonts)
+    2. open it in a browser sized so the sheet fills the viewport
+    3. screenshot, crop to the sheet, and downsample to exactly 1200x630
+
+  The sheet is authored at 1200x630 and scaled up for the capture, so the
+  downsample is what produces the final antialiasing.
+-->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1210; --text:#D8D5CC; --muted:#7a7c78; --dim:#454744;
+    --accent:#384D45; --border:#2a2a2a;
+    --strip:60px; --pattern:58px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#000}
+  /* Render scale. The capture is downsampled to 1200x630 afterwards, so
+     this is set to make the sheet fill the browser viewport and land above
+     1200 captured pixels — see the header comment. */
+  body{zoom:1.55}
+  #sheet{
+    position:relative;width:1200px;height:630px;overflow:hidden;
+    background:var(--bg);
+  }
+  /* perforation strips — same tile geometry as the site */
+  .strip{
+    position:absolute;top:0;bottom:0;width:var(--strip);
+    background-color:var(--bg);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='58'%3E%3Crect x='19' y='11' width='22' height='36' rx='5' ry='5' fill='%23000000'/%3E%3C/svg%3E");
+    background-repeat:repeat-y;background-position:center 0;
+    background-size:var(--strip) var(--pattern);
+  }
+  .strip.l{left:0;border-right:1px solid var(--border)}
+  .strip.r{right:0;border-left:1px solid var(--border)}
+  .edge{
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%) rotate(90deg);
+    font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;
+    color:var(--dim);white-space:nowrap;
+  }
+  .strip.r .edge{transform:translate(-50%,-50%) rotate(-90deg)}
+
+  #stage{
+    position:absolute;inset:0 var(--strip);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .kicker{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;
+    color:var(--muted);text-transform:uppercase;margin-bottom:26px;
+  }
+  h1{
+    font-family:'Archivo Narrow',sans-serif;font-weight:700;
+    font-size:118px;line-height:.92;letter-spacing:-0.02em;color:var(--text);
+    text-transform:uppercase;
+  }
+  .rule{width:340px;height:1px;background:var(--border);margin:30px 0 24px}
+  .role{
+    font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.24em;
+    color:var(--muted);text-transform:uppercase;
+  }
+  .badge{
+    margin-top:30px;padding:5px 12px;border:1px solid var(--border);
+    font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;
+    color:var(--accent);text-transform:uppercase;
+  }
+  /* corner frame marks */
+  .mark{position:absolute;width:22px;height:22px;border:1px solid var(--dim);opacity:.55}
+  .mark.tl{top:26px;left:calc(var(--strip) + 26px);border-right:0;border-bottom:0}
+  .mark.tr{top:26px;right:calc(var(--strip) + 26px);border-left:0;border-bottom:0}
+  .mark.bl{bottom:26px;left:calc(var(--strip) + 26px);border-right:0;border-top:0}
+  .mark.br{bottom:26px;right:calc(var(--strip) + 26px);border-left:0;border-top:0}
+  /* slate line */
+  .slate{
+    position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+    font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.28em;
+    color:var(--dim);text-transform:uppercase;white-space:nowrap;
+  }
+  /* grain */
+  #grain{
+    position:absolute;inset:0;pointer-events:none;opacity:.16;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* vignette */
+  #vig{position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.55) 100%)}
+</style>
+</head>
+<body>
+<div id="sheet">
+  <div class="strip l"><span class="edge">EMRAAN-Y · 2026 · 24fps · REEL 01</span></div>
+  <div class="strip r"><span class="edge">EMRAAN-Y · 2026 · 24fps · REEL 01</span></div>
+
+  <div id="stage">
+    <div class="kicker">A portfolio by</div>
+    <h1>Emraan Yusuf</h1>
+    <div class="rule"></div>
+    <div class="role">Software Engineer · ML Researcher</div>
+    <div class="badge">Dallas, TX</div>
+  </div>
+
+  <div class="mark tl"></div><div class="mark tr"></div>
+  <div class="mark bl"></div><div class="mark br"></div>
+  <div class="slate">Feature Presentation — emraanyusuf.com</div>
+
+  <div id="grain"></div>
+  <div id="vig"></div>
+</div>
+</body>
+</html>

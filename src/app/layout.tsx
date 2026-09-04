@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import {
   Archivo_Narrow,
   Inter,
@@ -18,6 +18,8 @@ import FrameCounter from '@/components/persistent/frame-counter';
 import TicketNav from '@/components/persistent/ticket-nav';
 import AmbientType from '@/components/persistent/ambient-type';
 import { CapabilityProvider } from '@/lib/capability/capability-context';
+import { PersonJsonLd } from '@/components/seo/json-ld';
+import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/lib/site';
 
 /* ----------------------------------------------------------------
    Google Fonts — loaded at build time via next/font.
@@ -93,12 +95,60 @@ const scheherazade = Scheherazade_New({
    ---------------------------------------------------------------- */
 
 export const metadata: Metadata = {
-  title: 'Emraan Yusuf',
-  description:
-    'Film portfolio — software engineer, ML researcher, and cinephile.',
+  /* Every relative URL in this object resolves against this. Without it,
+     an OG image path is not a URL a scraper can fetch. */
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  keywords: [
+    'Emraan Yusuf',
+    'portfolio',
+    'software engineer',
+    'machine learning',
+    'Dallas',
+  ],
+  alternates: { canonical: SITE_URL },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: '/og/one-sheet.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Emraan Yusuf — software engineer and ML researcher, Dallas, TX',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: ['/og/one-sheet.jpg'],
+  },
   icons: {
     icon: '/favicon.ico',
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  /* Matches --color-bg, so mobile browser chrome is the same film black as
+     the page instead of flashing white around it. */
+  themeColor: '#0E1210',
+  colorScheme: 'dark',
 };
 
 /* ----------------------------------------------------------------
@@ -122,6 +172,11 @@ export default function RootLayout({
         'h-full antialiased',
       ].join(' ')}
     >
+      <head>
+        {/* Structured data must be in the server-rendered HTML — crawlers
+            parse the document rather than running client JS. */}
+        <PersonJsonLd />
+      </head>
       <body className="min-h-full overflow-x-hidden">
         {/* Refresh always lands on the title page — disable the browser's
             automatic scroll restoration on mount and reset to (0, 0). */}
