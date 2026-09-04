@@ -19,8 +19,7 @@ import { markIntroDone } from './intro-signal';
  *
  * The black curtain fully fades out BEFORE the spool animation begins,
  * so the first rapid pass is visible. The translating wrapper gets a
- * motion-blur filter during the fast passes, and body.is-fast-scroll
- * is toggled so the perforations also blur.
+ * motion-blur filter during the fast passes.
  */
 
 interface IntroSequenceProps {
@@ -65,7 +64,6 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
   const unlockScroll = useCallback(() => {
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
-    document.body.classList.remove('is-fast-scroll');
     window.scrollTo(0, 0);
   }, []);
 
@@ -73,17 +71,16 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
     lockScroll();
     setStage('reveal');
     // Let the curtain fully fade before any content motion begins.
-    window.setTimeout(() => {
-      document.body.classList.add('is-fast-scroll');
-      setStage('spoolup');
-    }, REVEAL_MS);
+    window.setTimeout(() => setStage('spoolup'), REVEAL_MS);
   }, [lockScroll]);
 
-  const handleSettleStart = useCallback(() => {
-    // Drop the perforation blur in sync with the content blur as the
-    // final decelerating pass begins.
-    document.body.classList.remove('is-fast-scroll');
-  }, []);
+  /* The spool's final decelerating pass. Nothing to do here now: this used
+     to drop a `body.is-fast-scroll` class meant to blur the perforations in
+     sync with the content, but no rule ever defined that class, so the
+     perforation blur was never real. Kept as a hook point because SpoolUp
+     requires the callback and the moment is a genuine one to hang
+     something on. */
+  const handleSettleStart = useCallback(() => {}, []);
 
   const handleSpoolUpComplete = useCallback(() => {
     unlockScroll();
@@ -98,7 +95,6 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
     blurY.set(0);
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
-    document.body.classList.remove('is-fast-scroll');
     setStage('done');
     setOverlayVisible(false);
     markIntroDone();

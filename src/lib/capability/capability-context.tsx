@@ -123,21 +123,30 @@ function writePersistedLowPower(low: boolean) {
    Provider
    ---------------------------------------------------------------- */
 
+/**
+ * The hint-based profile, read during the first render rather than assigned
+ * from an effect afterwards.
+ *
+ * A stored verdict seeds the tier immediately, so a device measured
+ * struggling last visit starts light on this one instead of learning it
+ * again halfway down the page. Both readers return their server-safe
+ * defaults when there is no `window`.
+ */
+function initialProfile(): CapabilityProfile {
+  const ranLight = readPersistedLowPower();
+  const hints = readHints();
+  return {
+    ...hints,
+    tier: ranLight ? 'low' : computeTier(hints),
+    source: ranLight ? 'persisted' : 'hints',
+  };
+}
+
 export function CapabilityProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<CapabilityProfile>(defaultProfile);
+  const [profile, setProfile] = useState<CapabilityProfile>(initialProfile);
 
   useEffect(() => {
-    /* A stored verdict seeds the tier synchronously, so a device that was
-       measured struggling last visit starts light this visit instead of
-       learning it again halfway down the page. */
-    const ranLight = readPersistedLowPower();
-    const hints = readHints();
-
-    setProfile({
-      ...hints,
-      tier: ranLight ? 'low' : computeTier(hints),
-      source: ranLight ? 'persisted' : 'hints',
-    });
+    const ranLight = profile.source === 'persisted';
 
     let cancelled = false;
 
@@ -188,6 +197,10 @@ export function CapabilityProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
+    /* Mount-only: the probe runs once per page view. `profile.source` is read
+       for its value at mount, which is why it is not a dependency — re-running
+       this on every profile update would restart the probe it just finished. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

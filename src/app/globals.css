@@ -195,15 +195,6 @@ a {
   --font-display:     var(--font-display);
 }
 
-/* ------------------------------------------------------------------
-   Section gutter utility — applies the responsive section padding
-   tokens defined in variables.css. Use on top-level <section> roots.
-   ------------------------------------------------------------------ */
-
-.responsive-section {
-  padding: var(--section-pad-y) var(--section-pad-x);
-}
-
 /* Mobile-only safety net to prevent inner content from forcing
    horizontal scroll. Doesn't touch desktop layout. */
 @media (max-width: 768px) {
