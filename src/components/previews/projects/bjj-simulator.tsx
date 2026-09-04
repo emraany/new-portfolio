@@ -82,7 +82,7 @@ export default function BjjSimulatorPreview({ active }: PreviewProps) {
   const visible = written.slice(Math.max(0, written.length - ROWS));
 
   return (
-    <PreviewSurface background={c.bg} fontFamily={FONT}>
+    <PreviewSurface background={c.bg} fontFamily={FONT} active={active}>
       {/* ── Terminal tab strip ─────────────────────────────────────── */}
       <div
         style={{

@@ -43,11 +43,21 @@ export default function ProjectPreview({
   project,
   /** Skip the hover gate — the sheet opening is already an explicit request. */
   forceLive = false,
+  /**
+   * False for a card in the tree the current breakpoint hides. Filmography
+   * keeps both the mobile carousel and the desktop grid mounted and toggles
+   * them with CSS, so every project has two cards in the document at all
+   * times. The hidden half never animated — a display:none element reports
+   * no intersection — but it did construct two IntersectionObservers per
+   * card for the privilege, fourteen cards' worth.
+   */
+  enabled = true,
 }: {
   project: Project;
   forceLive?: boolean;
+  enabled?: boolean;
 }) {
-  const { ref, mounted, active, activate } = usePreviewActive<HTMLDivElement>();
+  const { ref, mounted, active, activate } = usePreviewActive<HTMLDivElement>(enabled);
   const Preview = previewRegistry[project.slug];
 
   useEffect(() => {
@@ -61,7 +71,7 @@ export default function ProjectPreview({
      Reaching for the ancestor keeps both the card and the sheet unaware that
      capability tiers exist at all. */
   useEffect(() => {
-    if (forceLive) return;
+    if (forceLive || !enabled) return;
     const el = ref.current;
     if (!el) return;
 
@@ -79,7 +89,7 @@ export default function ProjectPreview({
       target.removeEventListener('pointerenter', onPointerEnter);
       target.removeEventListener('focusin', activate);
     };
-  }, [ref, activate, forceLive]);
+  }, [ref, activate, forceLive, enabled]);
 
   return (
     <div ref={ref} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>

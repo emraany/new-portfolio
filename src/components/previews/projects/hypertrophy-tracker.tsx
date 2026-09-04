@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { PreviewSurface } from '../surface';
 import { useScript } from '../use-loop';
 import type { PreviewProps } from '../registry';
@@ -82,11 +83,24 @@ export default function HypertrophyTrackerPreview({ active }: PreviewProps) {
   const setsLogged = Math.min(Math.max(step, 0), SETS.length);
   const saved = step === 4;
 
+  /* The chart draws itself with SMIL (<animate> on stroke-dashoffset, plus
+     an <animateMotion> tracker). SMIL is not CSS, so the pause rule on the
+     surface cannot touch it — it has its own clock and its own controls,
+     and without this the chart kept drawing while the card was parked
+     offscreen and had finished by the time anyone looked at it. */
+  const chartRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    const svg = chartRef.current;
+    if (!svg) return;
+    if (active) svg.unpauseAnimations();
+    else svg.pauseAnimations();
+  }, [active, onProgress]);
+
   const d = pathFor(CURVE);
   const area = `${d} L${BOX.x + BOX.w},${BOX.y + BOX.h} L${BOX.x},${BOX.y + BOX.h} Z`;
 
   return (
-    <PreviewSurface background={c.page} fontFamily={FONT}>
+    <PreviewSurface background={c.page} fontFamily={FONT} active={active}>
       {/* ── Navbar ─────────────────────────────────────────────────── */}
       <div
         style={{
@@ -318,6 +332,7 @@ export default function HypertrophyTrackerPreview({ active }: PreviewProps) {
           />
 
           <svg
+            ref={chartRef}
             viewBox="0 0 100 62.5"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
           >

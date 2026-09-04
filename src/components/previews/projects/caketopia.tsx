@@ -110,6 +110,7 @@ export default function CaketopiaPreview({ active }: PreviewProps) {
     <PreviewSurface
       background={`linear-gradient(${SKY_TOP}, ${SKY_BOTTOM})`}
       fontFamily="var(--font-inter), system-ui, sans-serif"
+      active={active}
     >
       {/* ── Drifting clouds ────────────────────────────────────────── */}
       {[

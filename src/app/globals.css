@@ -247,3 +247,21 @@ a {
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   PREVIEW PAUSE CONTRACT
+   `active` used to stop only the JavaScript clock, so a preview parked
+   at the edge of the viewport kept running every CSS animation it had
+   declared — blinking cursors, drifting clouds, entrance loops — for as
+   long as its card stayed mounted. One rule, applied to the whole
+   subtree, makes the pause honest.
+
+   Paused rather than removed: an animation resumes mid-cycle, so a
+   preview scrolled back into view picks up where it left off, exactly
+   like the JS clock it is now in step with.
+   ------------------------------------------------------------------ */
+
+.preview-surface[data-active='false'],
+.preview-surface[data-active='false'] * {
+  animation-play-state: paused !important;
+}

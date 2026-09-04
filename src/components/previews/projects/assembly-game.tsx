@@ -86,7 +86,7 @@ export default function AssemblyGamePreview({ active }: PreviewProps) {
   const rows = [0, 1, 2, 3];
 
   return (
-    <PreviewSurface background={c.chrome} fontFamily={FONT}>
+    <PreviewSurface background={c.chrome} fontFamily={FONT} active={active}>
       {/* ── MARS window chrome ─────────────────────────────────────── */}
       <div
         style={{

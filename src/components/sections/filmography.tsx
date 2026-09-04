@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import ProjectCard from '@/components/projects/project-card';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import ExpandedProject from '@/components/projects/expanded-project';
 import { useGridExpansion } from '@/components/projects/use-grid-expansion';
 import { projects } from '@/data/projects';
@@ -176,10 +177,20 @@ export default function Filmography() {
     else setTimeout(onScrollEnd, 350);
   }, []);
 
-  const renderCard = (project: Project, index: number) => (
+  /* Both card trees are always in the document and the breakpoint picks
+     one with CSS, so every project has two cards at all times. The hidden
+     half never animated — a display:none element reports no intersection —
+     but each of its cards still built two IntersectionObservers, fourteen
+     cards' worth of them. Only the tree that is actually on screen gets a
+     live preview gate now. Null until mounted, so the server and the first
+     client render agree. */
+  const isWide = useMediaQuery('(min-width: 640px)');
+
+  const renderCard = (project: Project, index: number, inGrid: boolean) => (
     <ProjectCard
       project={project}
       index={index}
+      previewEnabled={isWide !== null && isWide === inGrid}
       onClick={(e) => handleTileClick(e, project, index)}
       onKeyDown={(e) => handleTileKeyDown(e, project, index)}
     />
@@ -227,7 +238,7 @@ export default function Filmography() {
           >
             {projects.map((project, i) => (
               <div className="pj-carousel-item" key={project.slug}>
-                {renderCard(project, i)}
+                {renderCard(project, i, false)}
               </div>
             ))}
           </div>
@@ -242,7 +253,7 @@ export default function Filmography() {
 
           {projects.slice(0, HIGHLIGHTED_COUNT).map((project, i) => (
             <div data-grid-slot key={project.slug} style={slotStyle(i)}>
-              {renderCard(project, i)}
+              {renderCard(project, i, true)}
             </div>
           ))}
 
@@ -255,7 +266,7 @@ export default function Filmography() {
             const idx = i + HIGHLIGHTED_COUNT;
             return (
               <div data-grid-slot key={project.slug} style={slotStyle(idx)}>
-                {renderCard(project, idx)}
+                {renderCard(project, idx, true)}
               </div>
             );
           })}

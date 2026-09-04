@@ -34,7 +34,7 @@ import { useCapability } from '@/lib/capability/capability-context';
  * probe finishing while someone is watching a preview must not yank it away.
  * `prefers-reduced-motion` is an absolute block on all of it.
  */
-export function usePreviewActive<T extends HTMLElement>() {
+export function usePreviewActive<T extends HTMLElement>(enabled = true) {
   const { tier } = useCapability();
   const ref = useRef<T>(null);
   const [reduced, setReduced] = useState(false);
@@ -55,17 +55,17 @@ export function usePreviewActive<T extends HTMLElement>() {
      on a weak laptop mounts the whole row the classification exists to
      avoid. */
   const activate = useCallback(() => {
-    if (reduced || tier === 'low') return;
+    if (reduced || !enabled || tier === 'low') return;
     if (mountedRef.current) return;
     mountedRef.current = true;
     setMounted(true);
-  }, [reduced, tier]);
+  }, [reduced, enabled, tier]);
 
   const autoMount = tier === 'high';
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || reduced) return;
+    if (!el || reduced || !enabled) return;
 
     const nearIO = new IntersectionObserver(
       ([entry]) => {
@@ -99,7 +99,7 @@ export function usePreviewActive<T extends HTMLElement>() {
        on (re)observe with the current intersection — so a card already in
        view goes live the moment the probe classifies the device, with no
        scroll needed. */
-  }, [reduced, autoMount]);
+  }, [reduced, autoMount, enabled]);
 
   return {
     ref,

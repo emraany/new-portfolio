@@ -120,42 +120,78 @@ export default function ConflictCoordinatePreview({ active }: PreviewProps) {
      The clock is the shared pause-aware one: its origin lives across
      `active` flipping, so scrolling the card away and back resumes the
      sweep where it left off instead of snapping the globe home. */
-  useLoopClock(active, (elapsed) => {
-    const t = (elapsed / 1000 / SWEEP_PERIOD) % 1;
-    const rot = SWEEP_AMPLITUDE * Math.cos(t * 2 * Math.PI);
-    rotRef.current = rot;
+  /* Skip writes that would set a value the node already has. Roughly half
+     the markers are on the far side of the globe at any moment, and each
+     was being re-hidden every single frame; the visible ones creep about
+     11 degrees per second, so most frames they round to the same pixel.
+     Comparing first is far cheaper than the style invalidation a write
+     costs, and nothing about the result changes. */
+  const lastWrite = useRef<string[]>([]);
 
-    let ringDrawn = false;
-
-    for (let i = 0; i < CRISES.length; i++) {
-      const el = dotRefs.current[i];
-      if (!el) continue;
-      const cr = CRISES[i];
-      const lam = (cr.lng + rot) * DEG;
-      const phi = cr.lat * DEG;
-      const z = Math.cos(phi) * Math.cos(lam);
-      if (z <= 0) {
-        el.style.opacity = '0';
-        continue;
-      }
-      const x = CX + R * Math.cos(phi) * Math.sin(lam);
-      const y = CY - R * Math.sin(phi);
-      el.setAttribute('cx', String(x));
-      el.setAttribute('cy', String(y));
-      /* Fade markers as they approach the limb, like the real globe */
-      el.style.opacity = String(Math.min(1, z * 2.6));
-
-      if (i === selectedRef.current && ringRef.current) {
-        ringRef.current.setAttribute('cx', String(x));
-        ringRef.current.setAttribute('cy', String(y));
-        ringRef.current.style.opacity = String(Math.min(1, z * 2.6));
-        ringDrawn = true;
-      }
+  const writeDot = (
+    el: SVGCircleElement,
+    i: number,
+    x: number | null,
+    y: number | null,
+    opacity: number
+  ) => {
+    const key = x === null ? `h` : `${x.toFixed(2)},${y!.toFixed(2)},${opacity.toFixed(2)}`;
+    if (lastWrite.current[i] === key) return;
+    lastWrite.current[i] = key;
+    if (x === null) {
+      el.style.opacity = '0';
+      return;
     }
+    el.setAttribute('cx', String(x));
+    el.setAttribute('cy', String(y));
+    el.style.opacity = String(opacity);
+  };
 
-    /* Never leave the ring stranded at a stale position */
-    if (!ringDrawn && ringRef.current) ringRef.current.style.opacity = '0';
-  });
+  useLoopClock(
+    active,
+    (elapsed) => {
+      const t = (elapsed / 1000 / SWEEP_PERIOD) % 1;
+      const rot = SWEEP_AMPLITUDE * Math.cos(t * 2 * Math.PI);
+      rotRef.current = rot;
+
+      let ringDrawn = false;
+
+      for (let i = 0; i < CRISES.length; i++) {
+        const el = dotRefs.current[i];
+        if (!el) continue;
+        const cr = CRISES[i];
+        const lam = (cr.lng + rot) * DEG;
+        const phi = cr.lat * DEG;
+        const z = Math.cos(phi) * Math.cos(lam);
+        if (z <= 0) {
+          writeDot(el, i, null, null, 0);
+          continue;
+        }
+        const x = CX + R * Math.cos(phi) * Math.sin(lam);
+        const y = CY - R * Math.sin(phi);
+        /* Fade markers as they approach the limb, like the real globe */
+        const opacity = Math.min(1, z * 2.6);
+        writeDot(el, i, x, y, opacity);
+
+        if (i === selectedRef.current && ringRef.current) {
+          ringRef.current.setAttribute('cx', String(x));
+          ringRef.current.setAttribute('cy', String(y));
+          ringRef.current.style.opacity = String(opacity);
+          ringDrawn = true;
+        }
+      }
+
+      /* Never leave the ring stranded at a stale position */
+      if (!ringDrawn && ringRef.current) ringRef.current.style.opacity = '0';
+    },
+    /* Explicit, and matching every other preview. This was the one clock
+       in the set with no rate argument, so it silently took the 60fps
+       default and ran at twice the cadence of its neighbours while doing
+       the most work per frame of any of them. The sweep is 192 degrees
+       over 34 seconds — about 11 degrees a second — so a marker travels
+       well under a pixel between frames at this rate. */
+    20
+  );
 
   /* The dossier walks the fixture set, always selecting the crisis nearest
      the centre of the visible hemisphere among those it hasn't shown
@@ -194,7 +230,7 @@ export default function ConflictCoordinatePreview({ active }: PreviewProps) {
   const sc = statusColor(c.status);
 
   return (
-    <PreviewSurface background={colors.bg} fontFamily={fonts.mono}>
+    <PreviewSurface background={colors.bg} fontFamily={fonts.mono} active={active}>
       {/* ── Header bar ─────────────────────────────────────────────── */}
       <div
         style={{

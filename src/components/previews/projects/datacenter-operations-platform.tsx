@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { PreviewSurface } from '../surface';
-import { useLoopClock, useScript } from '../use-loop';
+import { useScript } from '../use-loop';
 import type { PreviewProps } from '../registry';
 
 /* ── Design tokens — from the app's own source ────────────────────────── *
@@ -63,29 +63,34 @@ const PAGE_OF_STEP = [0, 0, 1, 1] as const;
 const CYCLE_MS = SCRIPT.reduce((a, b) => a + b, 0);
 
 export default function DatacenterOpsPreview({ active }: PreviewProps) {
-  const [step] = useScript(SCRIPT, active);
-  const page = PAGE_OF_STEP[step];
-
-  /* KPI counters. The digits are written straight to their DOM nodes,
-     never through React state: a setState per frame re-rendered this
-     whole card sixty times a second while the numbers climbed, which is
-     what made the count-up stutter next to the CSS transitions around
-     it. Same reason ../Website's NowPlaying tile writes transforms to
-     refs — one clock in, styles out, reconciler untouched. */
   const countRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
-  useLoopClock(active, (elapsed) => {
-    /* Derived from the same clock as the scene, so the count-up always
-       matches whichever scene is actually on screen. */
-    const t = Math.min(1, (elapsed % CYCLE_MS) / SCRIPT[0]);
-    const e = 1 - Math.pow(1 - t, 3); // easeOutCubic — settles, never snaps
-    for (let i = 0; i < METRICS.length; i++) {
-      const el = countRefs.current[i];
-      if (!el) continue;
-      const m = METRICS[i];
-      el.textContent = (m.to * e).toFixed(m.decimals ?? 0) + m.suffix;
-    }
+  /* One clock for both the scene script and the KPI count-up.
+     This preview used to run two — a 20fps scene clock and a separate
+     60fps counter loop — which is two independent rAF chains for a single
+     card, and two clocks that can disagree about what time it is. The
+     shared clock runs at the counter's rate, since scene changes are
+     ms-scale and cost nothing to notice early.
+
+     The digits are written straight to their DOM nodes, never through
+     React state: a setState per frame re-rendered this whole card sixty
+     times a second while the numbers climbed, which is what made the
+     count-up stutter next to the CSS transitions around it. One clock in,
+     styles out, reconciler untouched. */
+  const [step] = useScript(SCRIPT, active, {
+    fps: 60,
+    onFrame: (elapsed) => {
+      const t = Math.min(1, (elapsed % CYCLE_MS) / SCRIPT[0]);
+      const e = 1 - Math.pow(1 - t, 3); // easeOutCubic — settles, never snaps
+      for (let i = 0; i < METRICS.length; i++) {
+        const el = countRefs.current[i];
+        if (!el) continue;
+        const m = METRICS[i];
+        el.textContent = (m.to * e).toFixed(m.decimals ?? 0) + m.suffix;
+      }
+    },
   });
+  const page = PAGE_OF_STEP[step];
 
   /* Rows revealed on the Tickets page: streaming in, then all present */
   const rowsShown = step === 2 ? 3 : step >= 3 ? TICKETS.length : 0;
@@ -94,6 +99,7 @@ export default function DatacenterOpsPreview({ active }: PreviewProps) {
     <PreviewSurface
       background={c.bg}
       fontFamily="var(--font-inter), system-ui, sans-serif"
+      active={active}
     >
       <div
         style={{

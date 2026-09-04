@@ -89,12 +89,33 @@ export function useLoopClock(
  */
 export function useScript(
   durations: readonly number[],
-  active: boolean
+  active: boolean,
+  options?: {
+    /**
+     * Override the scene clock's rate. Only worth raising for a preview
+     * that also drives per-frame work through `onFrame` — see below.
+     */
+    fps?: number;
+    /**
+     * Per-frame hook, called with the same elapsed the scene index is
+     * derived from.
+     *
+     * This exists so a preview that needs both a scene script and smooth
+     * per-frame work runs on ONE clock. Two `useLoopClock` calls in one
+     * component are two independent rAF chains for a single card, and
+     * they can disagree about what time it is — which is how a count-up
+     * ends up animating for a scene that is no longer on screen.
+     */
+    onFrame?: (elapsed: number) => void;
+  }
 ): [step: number, loop: number] {
   const total = durations.reduce((a, b) => a + b, 0);
 
   const [state, setState] = useState<[number, number]>([0, 0]);
   const stateRef = useRef(state);
+
+  const onFrameRef = useRef(options?.onFrame);
+  onFrameRef.current = options?.onFrame;
 
   useLoopClock(
     active,
@@ -121,10 +142,12 @@ export function useScript(
         stateRef.current = [step, loop];
         setState([step, loop]);
       }
+
+      onFrameRef.current?.(elapsed);
     },
     // Scene changes are ms-scale; 20fps is more than enough to catch them
     // and keeps a grid of cards off the main thread.
-    20
+    options?.fps ?? 20
   );
 
   return state;

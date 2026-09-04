@@ -19,16 +19,30 @@ import type { CSSProperties, ReactNode } from 'react';
 export function PreviewSurface({
   background,
   fontFamily,
+  active = true,
   children,
   style,
 }: {
   background: string;
   fontFamily?: string;
+  /**
+   * The preview's run/pause flag.
+   *
+   * Passing it here is what makes pausing mean anything. `active` only ever
+   * stopped the JavaScript clock, so a preview scrolled to the edge of the
+   * viewport went on running every CSS `@keyframes` it had declared —
+   * blinking cursors, drifting clouds, entrance loops — for as long as the
+   * card stayed mounted. The attribute below lets one rule in globals.css
+   * pause the whole subtree.
+   */
+  active?: boolean;
   children: ReactNode;
   style?: CSSProperties;
 }) {
   return (
     <div
+      className="preview-surface"
+      data-active={active ? 'true' : 'false'}
       style={{
         position: 'absolute',
         inset: 0,

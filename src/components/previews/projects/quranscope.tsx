@@ -129,7 +129,7 @@ export default function QuranScopePreview({ active }: PreviewProps) {
   const answer = ANSWERS[STYLES[mode]];
 
   return (
-    <PreviewSurface background={c.bg} fontFamily={FONT_SANS}>
+    <PreviewSurface background={c.bg} fontFamily={FONT_SANS} active={active}>
       {/* ── Brand ──────────────────────────────────────────────────── */}
       <div
         style={{

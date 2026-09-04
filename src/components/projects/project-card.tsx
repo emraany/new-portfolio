@@ -318,11 +318,14 @@ export default function ProjectCard({
   index,
   onClick,
   onKeyDown,
+  previewEnabled = true,
 }: {
   project: Project;
   index: number;
   onClick?: (e: React.MouseEvent) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  /** False when this card belongs to the card tree the breakpoint hides. */
+  previewEnabled?: boolean;
 }) {
   const frameLabel = `${String(index + 1).padStart(2, '0')}A`;
 
@@ -337,7 +340,7 @@ export default function ProjectCard({
       onKeyDown={onKeyDown}
     >
       <ProjectVisual frameLabel={frameLabel}>
-        <ProjectPreview project={project} />
+        <ProjectPreview project={project} enabled={previewEnabled} />
       </ProjectVisual>
 
       <div className="pj-content">
