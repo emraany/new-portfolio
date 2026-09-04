@@ -17,6 +17,7 @@ import ProjectorCursor from '@/components/persistent/projector-cursor';
 import FrameCounter from '@/components/persistent/frame-counter';
 import TicketNav from '@/components/persistent/ticket-nav';
 import AmbientType from '@/components/persistent/ambient-type';
+import { CapabilityProvider } from '@/lib/capability/capability-context';
 
 /* ----------------------------------------------------------------
    Google Fonts — loaded at build time via next/font.
@@ -159,9 +160,15 @@ export default function RootLayout({
             film-content class applies the margin-left / margin-right
             defined in perforations.css.
             -------------------------------------------------------- */}
-        <div className="film-content">
-          {children}
-        </div>
+        {/* Decides how many of the seven live previews this device runs.
+            Only the previews are gated — grain, perforations, cursor,
+            ambient type and the intro are the site's identity and are never
+            taken away. */}
+        <CapabilityProvider>
+          <div className="film-content">
+            {children}
+          </div>
+        </CapabilityProvider>
       </body>
     </html>
   );

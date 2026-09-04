@@ -211,3 +211,39 @@ a {
     overflow-x: hidden;
   }
 }
+
+/* ------------------------------------------------------------------
+   PREVIEW DEVELOP
+   The transition from poster to live preview. A print coming up in a
+   tray: soft and over-saturated, resolving to sharp.
+
+   Ends on `filter: none` rather than a zeroed filter list on purpose —
+   any filter value, blur(0px) included, keeps the subtree in its own
+   rasterization pass for as long as it is set, and these subtrees
+   animate every frame for as long as the card is on screen.
+
+   Opacity and filter only. This element lives inside the card the
+   Filmography grid measures for its FLIP expansion, so it must not
+   introduce geometry of its own.
+   ------------------------------------------------------------------ */
+
+@keyframes preview-develop {
+  from {
+    opacity: 0;
+    filter: blur(6px) saturate(1.3) brightness(1.15);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.pj-preview-develop {
+  animation: preview-develop var(--duration-develop) var(--ease-develop) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-preview-develop {
+    animation: none;
+  }
+}

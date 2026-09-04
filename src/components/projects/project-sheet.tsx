@@ -77,7 +77,9 @@ export default function ProjectSheet({
     <DrawerContent overlayHandle className="project-sheet" aria-describedby={undefined}>
       {/* Live hero — full-bleed from the very top, handle floating over it */}
       <div className="sheet-hero">
-        {open && <ProjectPreview project={project} />}
+        {/* Opening the sheet is already an explicit request for this
+            project, so the preview does not wait to be hovered. */}
+        {open && <ProjectPreview project={project} forceLive />}
         <div className="sheet-hero-scrim" aria-hidden="true" />
       </div>
 

@@ -9,6 +9,7 @@ import {
 } from 'framer-motion';
 import Countdown from './countdown';
 import SpoolUp from './spool-up';
+import { markIntroDone } from './intro-signal';
 
 /**
  * IntroSequence
@@ -88,6 +89,7 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
     unlockScroll();
     setStage('done');
     setOverlayVisible(false);
+    markIntroDone();
   }, [unlockScroll]);
 
   const handleSkip = useCallback(() => {
@@ -99,6 +101,7 @@ export default function IntroSequence({ children }: IntroSequenceProps) {
     document.body.classList.remove('is-fast-scroll');
     setStage('done');
     setOverlayVisible(false);
+    markIntroDone();
     // Force scroll to top after paint so the transform reset is applied first.
     requestAnimationFrame(() => window.scrollTo(0, 0));
   }, [pageY, blurY]);
