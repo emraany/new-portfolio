@@ -19,43 +19,39 @@ import { useCapability } from '@/lib/capability/capability-context';
  *
  * ## The capability tier
  *
- * Seven live previews is a lot to ask of a device, and until now every device
- * was asked for all seven. What it costs is decided per device now:
+ * Seven live previews is a lot to ask of a device, so what it costs is decided
+ * per device — but the decision is now binary, because the card *is* the
+ * animation:
  *
- * - **high** — previews mount on approach. Unchanged; this is what a healthy
- *   machine has always seen and should keep seeing.
- * - **medium** — the card rests as its poster and develops into the live
- *   preview on hover or keyboard focus. A motion poster: the motion is still
- *   there, it just waits to be asked for.
- * - **low** — poster only.
+ * - **high** and **medium** — previews mount on approach. The card has no
+ *   still underneath it; the preview is the first and only thing it paints.
+ * - **low**, and `prefers-reduced-motion` — the poster still, and only that.
+ *   These are the devices that never get an animation, which is exactly what
+ *   the poster is for.
+ *
+ * The middle tier used to rest as a poster and develop into the preview on
+ * hover — a motion poster. Two things killed that. It could not work on touch
+ * at all (a phone has no hover, and nearly every phone lands on `medium`,
+ * since Safari withholds `deviceMemory` and no handset reports eight cores),
+ * and the still-then-animation handoff was the visible snap it was meant to
+ * smooth: the posters are frames of these previews, but a mounting preview
+ * starts at scene zero, so the crossfade dissolved one image into a different
+ * one. Deciding once, per device, whether a card is a still or an animation
+ * removes both problems.
+ *
+ * `activate` survives for the one caller that still needs it: the detail
+ * sheet, which forces its hero live rather than waiting to be scrolled to.
  *
  * Mounting **latches**. Once a card has gone live the near observer can never
- * put it back to the poster, and neither can a tier that arrives late — the
- * probe finishing while someone is watching a preview must not yank it away.
- * `prefers-reduced-motion` is an absolute block on all of it.
- *
- * ## Touch
- *
- * The middle tier is where nearly every phone lands — Safari withholds
- * `deviceMemory` and no handset reports eight cores, so `computeTier` cannot
- * award `high` — and the middle tier's opt-in gesture is *hover*, which a
- * phone does not have. The result was that a device could only ever see
- * posters: `activate` had no caller on touch, since the one pointer listener
- * that would have called it bails on `pointerType === 'touch'` (that same tap
- * is already opening the detail sheet).
- *
- * So on a hoverless device, scrolling a card to the middle of the screen is
- * the request. It gets its own observer rather than a looser `near`, because
- * the two want opposite things: `near` leads by 400px so a preview is warm
- * before you reach it, while this one must be *tight* — 400px of a horizontal
- * carousel is three cards, and mounting three previews at a swipe is the cost
- * the tier exists to avoid.
+ * put it back, and neither can a tier that arrives late — the probe finishing
+ * while someone is watching a preview must not yank it away.
  */
 export function usePreviewActive<T extends HTMLElement>(enabled = true) {
   const { tier } = useCapability();
   const ref = useRef<T>(null);
   const [reduced, setReduced] = useState(false);
   const [coarse, setCoarse] = useState(false);
+  const [settled, setSettled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(true);
   const mountedRef = useRef(false);
@@ -64,6 +60,7 @@ export function usePreviewActive<T extends HTMLElement>(enabled = true) {
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setReduced(mql.matches);
     sync();
+    setSettled(true);
     mql.addEventListener('change', sync);
     return () => mql.removeEventListener('change', sync);
   }, []);
@@ -79,18 +76,21 @@ export function usePreviewActive<T extends HTMLElement>(enabled = true) {
     return () => mql.removeEventListener('change', sync);
   }, []);
 
-  /* Hover/focus opt-in for the middle tier. A low tier is a hard block here
-     too: "posters only" has to mean it, or sweeping a cursor across the grid
-     on a weak laptop mounts the whole row the classification exists to
-     avoid. */
+  /** This device is never getting an animation, so the still is what it gets. */
+  const stillOnly = reduced || tier === 'low';
+
+  /* Force a mount ahead of the observer. Only the detail sheet calls this —
+     opening a project is already an explicit request for it, so its hero does
+     not wait to be scrolled into view. `stillOnly` is a hard block: "posters
+     only" has to mean it. */
   const activate = useCallback(() => {
-    if (reduced || !enabled || tier === 'low') return;
+    if (stillOnly || !enabled) return;
     if (mountedRef.current) return;
     mountedRef.current = true;
     setMounted(true);
-  }, [reduced, enabled, tier]);
+  }, [stillOnly, enabled]);
 
-  const autoMount = tier === 'high';
+  const autoMount = !stillOnly;
 
   useEffect(() => {
     const el = ref.current;
@@ -106,8 +106,14 @@ export function usePreviewActive<T extends HTMLElement>(enabled = true) {
       },
       /* A phone shows one card at a time and has a fraction of the frame
          budget, so the 400px lead-in — three cards of the carousel — is a
-         desktop luxury. Off screen means paused there. */
-      { rootMargin: coarse ? '0px' : '400px' }
+         desktop luxury. Off screen means paused there.
+
+         The threshold goes with it: the mobile strip deliberately leaves a
+         sliver of the next card showing, and a 26px sliver is not a card
+         arriving. Without it a swipe would mount and run three previews at
+         once. Safe against a tall element never reaching the fraction —
+         what is observed is the 16/10 visual, not the whole card. */
+      { rootMargin: coarse ? '0px' : '400px', threshold: coarse ? 0.4 : 0 }
     );
     nearIO.observe(el);
 
@@ -133,32 +139,24 @@ export function usePreviewActive<T extends HTMLElement>(enabled = true) {
        scroll needed. */
   }, [reduced, autoMount, enabled, coarse]);
 
-  /* The touch equivalent of hovering — see "Touch" above. Skipped when
-     `autoMount` already covers the card, and `activate` keeps the `low` tier
-     blocked, so this only ever speaks for the middle tier. */
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || reduced || !enabled || !coarse || autoMount) return;
-
-    const touchIO = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) activate();
-      },
-      { threshold: 0.4 }
-    );
-    touchIO.observe(el);
-
-    return () => touchIO.disconnect();
-  }, [reduced, enabled, coarse, autoMount, activate]);
-
   return {
     ref,
     /** Mount the preview at all — latched, only released far offscreen. */
     mounted: mounted && !reduced,
     /** Run its animation. Pausing preserves the loop's clock. */
     active: visible && mounted && !reduced,
-    /** Call on hover/focus. No-op except on the middle tier. */
+    /** Force a mount without waiting for the observer. Used by the sheet. */
     activate,
+    /**
+     * Render the still instead of the animation.
+     *
+     * Gated on `settled` rather than read straight off the tier: the server
+     * has no `navigator`, so `computeTier` answers `medium` there while the
+     * browser may answer `low` on its very first render. Deferring the
+     * decision by one commit keeps the server and the hydrating client
+     * rendering the same thing.
+     */
+    posterOnly: settled && stillOnly,
   } as const;
 }
 

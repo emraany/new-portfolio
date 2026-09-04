@@ -13,9 +13,14 @@ import { usePreviewActive } from './use-preview-active';
  * Fills its parent (which owns the 16/10 box), so card dimensions never
  * change.
  *
- * The poster sits underneath every preview as the first paint, so a card is
- * never blank while its preview chunk loads — and on a device that has earned
- * only posters, it is simply what the card is.
+ * The poster is a fallback, not a first paint. It used to sit under every
+ * preview, which meant every card played the same two-step: still, then a
+ * 400ms crossfade into the animation. Because the posters are frames of these
+ * previews but a mounting preview starts at scene zero, that crossfade
+ * dissolved one image into a visibly different one — the snap. A card is now
+ * one thing or the other, decided per device: the animation, or (where no
+ * animation is ever coming — low tier, reduced motion, or a slug with no
+ * entry in the registry) the still.
  *
  * ## The develop
  *
@@ -23,8 +28,8 @@ import { usePreviewActive } from './use-preview-active';
  * in a tray — soft and over-saturated, resolving to sharp. That is the site's
  * existing darkroom vocabulary (the `--develop-*` and `--ease-develop` tokens
  * variables.css has always declared) applied to the one moment that most
- * wanted it. On the middle capability tier, where the card rests as a poster
- * until it is hovered, this develop is the whole effect: a motion poster.
+ * wanted it. With nothing underneath it now, the develop reveals the
+ * animation out of the card's own surface rather than dissolving a still.
  *
  * Two constraints on it, both load-bearing:
  *
@@ -33,15 +38,15 @@ import { usePreviewActive } from './use-preview-active';
  *    expansion; a transform here would be read as the card's real position and
  *    the expansion would fly from the wrong place.
  * 2. **Keyed to `mounted`, not `active`.** A preview that pauses at the edge
- *    of the viewport holds its last frame instead of dissolving back to the
- *    poster and re-developing every time it is scrolled past.
+ *    of the viewport holds its last frame instead of blanking out and
+ *    re-developing every time it is scrolled past.
  *
  * The resting desaturation of a live preview is unchanged: it still comes
  * from `.pj-develop` on the wrapper, which is also what brightens on hover.
  */
 export default function ProjectPreview({
   project,
-  /** Skip the hover gate — the sheet opening is already an explicit request. */
+  /** Mount now rather than on approach — opening the sheet already asked. */
   forceLive = false,
   /**
    * False for a card in the tree the current breakpoint hides. Filmography
@@ -57,49 +62,29 @@ export default function ProjectPreview({
   forceLive?: boolean;
   enabled?: boolean;
 }) {
-  const { ref, mounted, active, activate } = usePreviewActive<HTMLDivElement>(enabled);
+  const { ref, mounted, active, activate, posterOnly } =
+    usePreviewActive<HTMLDivElement>(enabled);
   const Preview = previewRegistry[project.slug];
 
   useEffect(() => {
     if (forceLive) activate();
   }, [forceLive, activate]);
 
-  /* Hover and focus live on the card, not here — the visual is only the top
-     of the card, and someone reading the synopsis has plainly asked to see
-     the project. So the activation listeners go on the card root when there
-     is one, and fall back to this element when there is not (the sheet).
-     Reaching for the ancestor keeps both the card and the sheet unaware that
-     capability tiers exist at all. */
-  useEffect(() => {
-    if (forceLive || !enabled) return;
-    const el = ref.current;
-    if (!el) return;
-
-    const target = el.closest('[data-tile-root]') ?? el;
-    const onPointerEnter = (e: Event) => {
-      /* A tap fires pointerenter too, and on touch that same gesture is
-         already opening the detail sheet. */
-      if ((e as PointerEvent).pointerType === 'touch') return;
-      activate();
-    };
-
-    target.addEventListener('pointerenter', onPointerEnter);
-    target.addEventListener('focusin', activate);
-    return () => {
-      target.removeEventListener('pointerenter', onPointerEnter);
-      target.removeEventListener('focusin', activate);
-    };
-  }, [ref, activate, forceLive, enabled]);
+  /* The hover and focus listeners that used to live here are gone with the
+     motion poster they served: a card that is getting an animation now mounts
+     it on approach, so there is nothing left to ask for. */
 
   return (
     <div ref={ref} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      <Image
-        src={`/posters/${project.slug}.webp`}
-        alt={project.title}
-        fill
-        sizes="(max-width: 768px) 100vw, 33vw"
-        style={{ objectFit: 'cover', objectPosition: 'top' }}
-      />
+      {(posterOnly || !Preview) && (
+        <Image
+          src={`/posters/${project.slug}.webp`}
+          alt={project.title}
+          fill
+          sizes="(max-width: 768px) 100vw, 33vw"
+          style={{ objectFit: 'cover', objectPosition: 'top' }}
+        />
+      )}
 
       {Preview && mounted && (
         <div
