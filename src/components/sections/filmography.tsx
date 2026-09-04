@@ -6,7 +6,7 @@ import ExpandedProject from '@/components/projects/expanded-project';
 import { useGridExpansion } from '@/components/projects/use-grid-expansion';
 import { projects } from '@/data/projects';
 import type { Project } from '@/data/projects';
-import ScreeningPanel from '@/components/sections/screening-panel';
+import { ProjectDrawer } from '@/components/projects/project-sheet';
 import SectionHeader from '@/components/ui/section-header';
 
 /**
@@ -16,21 +16,25 @@ import SectionHeader from '@/components/ui/section-header';
  * Same anatomy as his: a "Highlighted" band of three, a "More Projects"
  * band for the rest, and a full-width expansion overlay that is always
  * mounted (mounting it on click costs a frame). On the 3-column desktop
- * grid a click runs his FLIP expansion; narrower layouts open the
- * screening panel instead, which is the equivalent of his drawer.
+ * grid a click runs his FLIP expansion; narrower layouts open his bottom
+ * sheet.
  *
- * Below 640px it becomes his horizontal snap carousel of the first three
- * with mouse drag-to-scroll and velocity snapping, plus the "View all"
- * button — which reveals the rest inline here rather than opening a
- * separate full-screen drawer.
+ * Below 640px it becomes his horizontal snap carousel with mouse
+ * drag-to-scroll and velocity snapping — but carrying every project
+ * rather than a preview of three behind a "View all" button, so the whole
+ * filmography is one sideways slide. Tapping a card opens his sheet.
  */
 
-const MOBILE_PREVIEW_COUNT = 3;
 const HIGHLIGHTED_COUNT = 3;
 
 export default function Filmography() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [allProjectsOpen, setAllProjectsOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const openSheet = useCallback((project: Project) => {
+    setSelectedProject(project);
+    setSheetOpen(true);
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -60,21 +64,32 @@ export default function Filmography() {
     (e: React.MouseEvent, project: Project, index: number) => {
       if (dragState.current.dragged) return;
       if ((e.target as HTMLElement).closest('a')) return;
-      if (isDesktopGrid) expand(index);
-      else setSelectedProject(project);
+      if (!isDesktopGrid) {
+        openSheet(project);
+        return;
+      }
+      /* Clicking the card again — including after it has flown into the
+         expanded view's left panel — closes it and hands the row back to
+         the other projects. */
+      if (expandedIndex === index) collapse();
+      else expand(index);
     },
-    [isDesktopGrid, expand]
+    [isDesktopGrid, expand, collapse, expandedIndex, openSheet]
   );
 
   const handleTileKeyDown = useCallback(
     (e: React.KeyboardEvent, project: Project, index: number) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        if (isDesktopGrid) expand(index);
-        else setSelectedProject(project);
+        if (!isDesktopGrid) {
+          openSheet(project);
+          return;
+        }
+        if (expandedIndex === index) collapse();
+        else expand(index);
       }
     },
-    [isDesktopGrid, expand]
+    [isDesktopGrid, expand, collapse, expandedIndex, openSheet]
   );
 
   /* ── Mouse drag-to-scroll for the mobile carousel ─────────────────── */
@@ -183,8 +198,6 @@ export default function Filmography() {
     return undefined;
   };
 
-  const carouselProjects = projects.slice(0, MOBILE_PREVIEW_COUNT);
-  const restProjects = projects.slice(MOBILE_PREVIEW_COUNT);
 
   return (
     <>
@@ -212,39 +225,12 @@ export default function Filmography() {
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
           >
-            {carouselProjects.map((project, i) => (
+            {projects.map((project, i) => (
               <div className="pj-carousel-item" key={project.slug}>
                 {renderCard(project, i)}
               </div>
             ))}
           </div>
-
-          {!allProjectsOpen && (
-            <button type="button" className="pj-viewall cursor-target" onClick={() => setAllProjectsOpen(true)}>
-              View all {projects.length} projects
-              <svg
-                aria-hidden="true"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          )}
-
-          {allProjectsOpen && (
-            <div className="pj-mobile-rest">
-              {restProjects.map((project, i) => (
-                <div key={project.slug}>{renderCard(project, i + MOBILE_PREVIEW_COUNT)}</div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* ── Tablet + desktop: the grid ──────────────────────────────── */}
@@ -297,7 +283,7 @@ export default function Filmography() {
         </div>
       </section>
 
-      <ScreeningPanel project={selectedProject} onClose={() => setSelectedProject(null)} />
+      <ProjectDrawer project={selectedProject} open={sheetOpen} onOpenChange={setSheetOpen} />
     </>
   );
 }
@@ -347,9 +333,11 @@ const PROJECTS_CSS = `
 .pj-rule { height: 1px; flex: 1; background: var(--color-border); }
 
 /* ── Card ──────────────────────────────────────────────────────────── */
+/* No hover raise: the card sits still and the visual does the reacting —
+   the border lifts, the print develops, the play button comes up. The
+   raise also fought the FLIP, which had to cancel it before measuring. */
 .pj-card {
   position: relative;
-  top: 0;
   display: flex;
   height: 100%;
   flex-direction: column;
@@ -359,13 +347,17 @@ const PROJECTS_CSS = `
   background: var(--color-surface);
   user-select: none;
   cursor: pointer;
-  transition: border-color 200ms, top 200ms;
+  transition: border-color 220ms ease, background-color 220ms ease;
 }
-.pj-card:hover { top: -3px; border-color: rgba(216,213,204,0.22); }
-.pj-card:focus-visible { outline: 1px solid var(--color-accent); outline-offset: 2px; }
-/* While expanded the FLIP owns position — drop the raise instantly */
+.pj-card:hover {
+  border-color: rgba(216, 213, 204, 0.24);
+  background: rgba(216, 213, 204, 0.02);
+}
+.pj-card:focus-visible {
+  outline: 1px solid var(--color-text-secondary);
+  outline-offset: 2px;
+}
 .pj-card[data-expanded] { transition: none !important; }
-.pj-card[data-expanded]:hover { top: 0; }
 
 .pj-visual {
   position: relative;
@@ -402,7 +394,12 @@ const PROJECTS_CSS = `
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.42) 60%,
+    rgba(0, 0, 0, 0.34) 100%
+  );
   opacity: 0;
   transition: opacity 250ms ease;
   pointer-events: none;
@@ -557,29 +554,4 @@ const PROJECTS_CSS = `
   width: 78vw;
 }
 
-.pj-viewall {
-  margin-top: var(--space-6);
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  border-radius: 12px;
-  border: 1px solid var(--color-border);
-  background: rgba(216,213,204,0.03);
-  padding: 14px 20px;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: background-color 200ms;
-}
-.pj-viewall:active { background: rgba(216,213,204,0.06); }
-
-.pj-mobile-rest {
-  margin-top: var(--space-6);
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-6);
-}
 `;

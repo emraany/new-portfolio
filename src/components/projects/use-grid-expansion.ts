@@ -347,12 +347,14 @@ export function useGridExpansion({ gridRef }: UseGridExpansionOptions) {
 
       const tileEl = gridSlot.querySelector<HTMLElement>('[data-tile-root]') ?? gridSlot;
 
-      // ── Drop the hover raise instantly, before measuring ──
+      // ── Freeze the card's own transitions before measuring ──
+      // Marks the card as expanded (which also drops its play overlay) and
+      // stops any in-flight hover transition from skewing the rect.
       tileEl.dataset.expanded = '';
       tileEl.style.transition = 'none';
       void tileEl.offsetHeight; // force style recalc
 
-      // ── Batch all layout reads (tile now sits un-raised) ──
+      // ── Batch all layout reads ──
       const firstRect = tileEl.getBoundingClientRect();
       const gridRect = grid.getBoundingClientRect();
       const slotOffsetLeft = gridSlot.offsetLeft;

@@ -1,0 +1,227 @@
+/* ============================================================
+   BOTTOM-SHEET DRAWER
+   Structure ported from ../Website/src/components/ui/drawer.tsx,
+   repainted in the film palette.
+   ============================================================ */
+
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  /* The overlay is the scroll trap — a touch on it must not pan the page. */
+  touch-action: none;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(2px);
+}
+
+.drawer-sheet {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 201;
+  margin-inline: auto;
+  margin-top: max(3rem, env(safe-area-inset-top));
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  overscroll-behavior: contain;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  background: var(--color-surface);
+  outline: none;
+  /* Composited children (the live preview) must stay clipped by the radius */
+  isolation: isolate;
+  transform: translateZ(0);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .drawer-sheet {
+    margin-top: 6rem;
+    max-width: 34rem;
+    margin-bottom: 1rem;
+    border-radius: 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+/* Grab zone — the drag target for dismissing the sheet */
+.drawer-grab {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+.drawer-grab:active { cursor: grabbing; }
+
+/* Full-bleed hero variant: the whole hero is the pull-down target */
+/* Full-bleed hero variant: the whole hero is the pull-down target, so it
+   tracks the hero's aspect box rather than a fixed height. */
+.drawer-grab-overlay {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 10;
+  aspect-ratio: 16 / 10;
+  height: auto;
+  align-items: flex-start;
+  padding-top: 0;
+}
+
+.drawer-handle {
+  height: 4px;
+  width: 40px;
+  border-radius: 999px;
+  background: rgba(216, 213, 204, 0.22);
+}
+.drawer-handle-overlay {
+  margin-top: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  mix-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+}
+
+.drawer-header {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-4);
+}
+
+.drawer-title {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Project detail sheet ──────────────────────────────────────────── */
+
+.project-sheet {
+  max-height: 88dvh;
+}
+
+/* The hero keeps the previews' own 16/10 box. His tiles have a
+   fixed-height visual so a flat 14rem hero suited them; capping ours
+   cropped a third off the bottom of every preview. */
+.sheet-hero {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+.sheet-hero-scrim {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 4rem;
+  background: linear-gradient(to top, var(--color-surface), transparent);
+  z-index: 2;
+}
+
+.sheet-header {
+  flex-shrink: 0;
+  gap: 4px;
+  padding: var(--space-4) var(--space-6) 0;
+  text-align: left;
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-3) var(--space-6) var(--space-2);
+}
+
+.sheet-tag {
+  border-radius: 999px;
+  background: rgba(216, 213, 204, 0.07);
+  padding: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+}
+
+.sheet-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) max(var(--space-6), env(safe-area-inset-bottom));
+}
+.sheet-btn {
+  flex: 1;
+  padding-block: 12px;
+}
+
+/* ── All-projects drawer ───────────────────────────────────────────── */
+
+.all-projects-sheet {
+  height: 94dvh;
+  max-height: 94dvh;
+}
+
+.all-projects-header {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5) var(--space-2);
+}
+
+.all-projects-close {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 8px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 200ms, color 200ms;
+}
+.all-projects-close:hover {
+  background: rgba(216, 213, 204, 0.06);
+  color: var(--color-text-primary);
+}
+
+.all-projects-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: var(--space-2) var(--space-4) var(--space-8);
+}
+
+.all-projects-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+/* Landscape phones and up get two columns, as in his */
+@media (min-width: 560px) {
+  .all-projects-grid { grid-template-columns: repeat(2, 1fr); }
+}
