@@ -12,6 +12,27 @@ const API_KEY = process.env.TMDB_API_KEY ?? '';
 /** Every upstream call is bounded, so a slow TMDB cannot hold a page open. */
 const TIMEOUT_MS = 6000;
 
+/**
+ * A missing key used to fail in total silence: `search` returns `[]`, the
+ * diary entries get `posterPath: null`, and Recently Watched renders its
+ * title-text fallback — which looks like a design choice, not a broken
+ * deployment. That is exactly how renaming this variable from
+ * NEXT_PUBLIC_TMDB_API_KEY went unnoticed in production while every local
+ * `.env.local` had it. One line at first use, so the logs say so.
+ */
+let warnedMissingKey = false;
+function hasKey(): boolean {
+  if (API_KEY) return true;
+  if (!warnedMissingKey) {
+    warnedMissingKey = true;
+    console.error(
+      'TMDB_API_KEY is not set — film posters and search will come back empty. ' +
+        'Set it in the deployment environment (it was NEXT_PUBLIC_TMDB_API_KEY before).'
+    );
+  }
+  return false;
+}
+
 export function tmdbPosterUrl(
   posterPath: string,
   size: 'w342' | 'w500' | 'original' = 'w342'
@@ -33,7 +54,7 @@ export interface TMDBFilmDetail extends TMDBFilm {
 }
 
 async function search(title: string): Promise<TMDBFilm[]> {
-  if (!API_KEY) return [];
+  if (!hasKey()) return [];
   try {
     const url = `${BASE}/search/movie?query=${encodeURIComponent(title)}&api_key=${API_KEY}`;
     const res = await fetch(url, {
@@ -59,7 +80,7 @@ export async function searchFilms(title: string, limit: number): Promise<TMDBFil
 }
 
 export async function getFilmById(tmdbId: number): Promise<TMDBFilmDetail | null> {
-  if (!API_KEY) return null;
+  if (!hasKey()) return null;
   try {
     const url = `${BASE}/movie/${tmdbId}?api_key=${API_KEY}`;
     const res = await fetch(url, {

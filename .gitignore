@@ -12,3 +12,5 @@ my-portfolio-is-looking-floating-yao.md
 CLAUDE.md
 AGENTS.md
 PLAN_PROMPT.md
+.vercel
+.env*

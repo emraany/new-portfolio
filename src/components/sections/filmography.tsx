@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ProjectCard from '@/components/projects/project-card';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import ExpandedProject from '@/components/projects/expanded-project';
@@ -24,6 +24,11 @@ import SectionHeader from '@/components/ui/section-header';
  * drag-to-scroll and velocity snapping — but carrying every project
  * rather than a preview of three behind a "View all" button, so the whole
  * filmography is one sideways slide. Tapping a card opens his sheet.
+ *
+ * That last part was the problem: a centred card leaves a ~26px sliver of
+ * its neighbour, which reads as a margin rather than as six more projects,
+ * so the strip looked like a single tile. It now carries a frame counter, a
+ * position rail and a swipe hint that retires itself after the first swipe.
  */
 
 const HIGHLIGHTED_COUNT = 3;
@@ -48,6 +53,48 @@ export default function Filmography() {
     lastTime: 0,
     velocity: 0,
   });
+
+  /* Which card the strip is showing, for the counter and the rail. One rAF
+     per frame at most, and the setState bails when the index is unchanged —
+     so a swipe across the whole filmography costs seven re-renders, not one
+     per scroll event. */
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [hasSwiped, setHasSwiped] = useState(false);
+  const scrollRaf = useRef(0);
+
+  const readCarouselIndex = useCallback(() => {
+    scrollRaf.current = 0;
+    const el = scrollRef.current;
+    if (!el) return;
+    const cards = Array.from(el.children) as HTMLElement[];
+    if (cards.length === 0) return;
+
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    cards.forEach((card, i) => {
+      const dist = Math.abs(card.offsetLeft + card.offsetWidth / 2 - center);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    });
+
+    setActiveIndex(best);
+    if (el.scrollLeft > 8) setHasSwiped(true);
+  }, []);
+
+  const onCarouselScroll = useCallback(() => {
+    if (scrollRaf.current) return;
+    scrollRaf.current = requestAnimationFrame(readCarouselIndex);
+  }, [readCarouselIndex]);
+
+  useEffect(
+    () => () => {
+      if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current);
+    },
+    []
+  );
 
   const {
     expandedIndex,
@@ -235,12 +282,54 @@ export default function Filmography() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
+            onScroll={onCarouselScroll}
           >
             {projects.map((project, i) => (
               <div className="pj-carousel-item" key={project.slug}>
                 {renderCard(project, i, false)}
               </div>
             ))}
+          </div>
+
+          {/* Says there is more to the right, and where you are in it.
+              aria-hidden because every card is already a focusable button in
+              document order — this is the sighted-swipe equivalent of that,
+              not a second set of facts. */}
+          <div className="pj-swipe" aria-hidden="true">
+            <span className="pj-swipe-count">
+              {String(activeIndex + 1).padStart(2, '0')}
+              <span className="pj-swipe-of">
+                {' / '}
+                {String(projects.length).padStart(2, '0')}
+              </span>
+            </span>
+
+            <span className="pj-swipe-rail">
+              <span
+                className="pj-swipe-fill"
+                style={{
+                  width: `${100 / projects.length}%`,
+                  transform: `translateX(${activeIndex * 100}%)`,
+                }}
+              />
+            </span>
+
+            <span className="pj-swipe-hint" data-done={hasSwiped ? '' : undefined}>
+              Swipe
+              <svg
+                className="pj-swipe-arrow"
+                width="16"
+                height="8"
+                viewBox="0 0 16 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M0 4h13.5M10.5 1 14 4l-3.5 3" />
+              </svg>
+            </span>
           </div>
         </div>
 
@@ -360,9 +449,15 @@ const PROJECTS_CSS = `
   cursor: pointer;
   transition: border-color 220ms ease, background-color 220ms ease;
 }
-.pj-card:hover {
-  border-color: rgba(216, 213, 204, 0.24);
-  background: rgba(216, 213, 204, 0.02);
+/* Every :hover below is behind a (hover: hover) query. On iOS an element whose
+   hover styles change how it paints eats the first tap applying that state,
+   so a card needed two taps to open its sheet — and the hover state then
+   stuck on the card you left behind. */
+@media (hover: hover) and (pointer: fine) {
+  .pj-card:hover {
+    border-color: rgba(216, 213, 204, 0.24);
+    background: rgba(216, 213, 204, 0.02);
+  }
 }
 .pj-card:focus-visible {
   outline: 1px solid var(--color-text-secondary);
@@ -378,12 +473,19 @@ const PROJECTS_CSS = `
   flex-shrink: 0;
 }
 
-/* Darkroom develop — undeveloped at rest, full print on hover */
+/* Darkroom develop — undeveloped at rest, full print on hover. A device
+   that cannot hover has no way to finish the develop, so there it is simply
+   printed: an image left permanently half-developed is not the effect. */
 .pj-develop {
   filter: saturate(0.7) brightness(0.85);
   transition: filter 400ms cubic-bezier(0.4, 0, 0.6, 1);
 }
-.pj-card:hover .pj-develop { filter: saturate(1) brightness(1); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-card:hover .pj-develop { filter: saturate(1) brightness(1); }
+}
+@media (hover: none) {
+  .pj-develop { filter: none; }
+}
 
 .pj-slate {
   position: absolute;
@@ -415,7 +517,9 @@ const PROJECTS_CSS = `
   transition: opacity 250ms ease;
   pointer-events: none;
 }
-.pj-card:hover .pj-play-layer { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .pj-card:hover .pj-play-layer { opacity: 1; }
+}
 .pj-card[data-expanded] .pj-play-layer { opacity: 0; }
 
 .pj-play {
@@ -434,7 +538,9 @@ const PROJECTS_CSS = `
   transform: scale(0.8);
   transition: transform 250ms ease 50ms;
 }
-.pj-card:hover .pj-play { transform: scale(1); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-card:hover .pj-play { transform: scale(1); }
+}
 
 .pj-content {
   display: flex;
@@ -456,7 +562,9 @@ const PROJECTS_CSS = `
   text-decoration: none;
   transition: color 200ms;
 }
-.pj-link:hover { color: var(--color-text-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-link:hover { color: var(--color-text-primary); }
+}
 
 /* ── Expansion overlay ─────────────────────────────────────────────── */
 .pj-overlay {
@@ -517,7 +625,9 @@ const PROJECTS_CSS = `
   cursor: pointer;
   transition: background-color 200ms, color 200ms;
 }
-.pj-close:hover { background: var(--color-surface); color: var(--color-text-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-close:hover { background: var(--color-surface); color: var(--color-text-primary); }
+}
 
 .pj-btn {
   display: inline-flex;
@@ -537,13 +647,17 @@ const PROJECTS_CSS = `
   background: var(--color-text-primary);
   color: var(--color-bg);
 }
-.pj-btn-primary:hover { opacity: 0.9; }
+@media (hover: hover) and (pointer: fine) {
+  .pj-btn-primary:hover { opacity: 0.9; }
+}
 .pj-btn-secondary {
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-primary);
 }
-.pj-btn-secondary:hover { background: rgba(216,213,204,0.05); }
+@media (hover: hover) and (pointer: fine) {
+  .pj-btn-secondary:hover { background: rgba(216,213,204,0.05); }
+}
 
 /* ── Mobile carousel ───────────────────────────────────────────────── */
 .pj-carousel {
@@ -562,7 +676,66 @@ const PROJECTS_CSS = `
 .pj-carousel-item {
   flex-shrink: 0;
   scroll-snap-align: center;
-  width: 78vw;
+  /* 74 rather than 78: four more viewport-percent of the neighbouring cards
+     showing on each side is the difference between a margin and a strip. */
+  width: 74vw;
+}
+
+/* ── Swipe affordance ──────────────────────────────────────────────── */
+.pj-swipe {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.pj-swipe-count {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pj-swipe-of { color: var(--color-text-muted); }
+
+.pj-swipe-rail {
+  position: relative;
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.pj-swipe-fill {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--color-accent);
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pj-swipe-hint {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  transition: opacity 400ms ease;
+}
+/* Fades rather than unmounts: the rail keeps its width, so retiring the
+   hint does not shuffle the row it sits in. */
+.pj-swipe-hint[data-done] { opacity: 0; }
+.pj-swipe-hint[data-done] .pj-swipe-arrow { animation: none; }
+
+.pj-swipe-arrow { animation: pj-nudge 1.9s ease-in-out infinite; }
+@keyframes pj-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pj-swipe-arrow { animation: none; }
+  .pj-swipe-fill { transition: none; }
 }
 
 `;
