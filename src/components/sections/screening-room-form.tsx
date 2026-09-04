@@ -47,8 +47,9 @@ function TicketButton({ onClick, type = 'button', disabled, children }: TicketBu
 
 // ─── Main Form Component ──────────────────────────────────────────────────────
 
-const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY ?? '';
-const TMDB_SEARCH_BASE = 'https://api.themoviedb.org/3/search/movie';
+/** Matches the server's cap, so the note is never silently truncated. */
+const MAX_NOTE = 500;
+const MAX_QUERY = 100;
 
 export default function RecommendationForm() {
   const [query, setQuery] = useState('');
@@ -60,23 +61,27 @@ export default function RecommendationForm() {
   const [error, setError] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Debounced TMDB search
-  const doSearch = useCallback((q: string) => {
-    if (!q.trim() || !TMDB_KEY) {
+  /* Search goes through our own route rather than straight to TMDB: the key
+     it needs is server-only now, and the results get cached once for everyone
+     instead of per visitor per keystroke. */
+  const doSearch = useCallback((q: string, signal: AbortSignal) => {
+    if (!q.trim()) {
       setResults([]);
       setShowDropdown(false);
       return;
     }
-    const url = `${TMDB_SEARCH_BASE}?query=${encodeURIComponent(q)}&api_key=${TMDB_KEY}&page=1`;
-    fetch(url)
+    fetch(`/api/tmdb-search?q=${encodeURIComponent(q)}`, { signal })
       .then((r) => r.json())
       .then((data: unknown) => {
         const d = data as { results?: TMDBFilm[] };
-        const top5 = (d.results ?? []).slice(0, 5);
-        setResults(top5);
-        setShowDropdown(top5.length > 0);
+        const top = d.results ?? [];
+        setResults(top);
+        setShowDropdown(top.length > 0);
       })
       .catch(() => {
+        /* An aborted request is the expected path for every keystroke but the
+           last, so it must not clear results the newer request will fill. */
+        if (signal.aborted) return;
         setResults([]);
         setShowDropdown(false);
       });
@@ -84,8 +89,15 @@ export default function RecommendationForm() {
 
   useEffect(() => {
     if (selectedFilm) return; // don't re-search once selected
-    const timer = setTimeout(() => doSearch(query), 300);
-    return () => clearTimeout(timer);
+    /* Debounce alone left superseded requests in flight, so a slow early
+       response could land after a fast later one and repopulate the dropdown
+       with results for a query the visitor had already moved past. */
+    const controller = new AbortController();
+    const timer = setTimeout(() => doSearch(query, controller.signal), 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query, selectedFilm, doSearch]);
 
   function handleSelect(film: TMDBFilm) {
@@ -142,8 +154,6 @@ export default function RecommendationForm() {
       setSubmitting(false);
     }
   }
-
-  const noApiKey = !TMDB_KEY;
 
   return (
     <div>
@@ -202,8 +212,8 @@ export default function RecommendationForm() {
               onFocus={() => {
                 if (results.length > 0) setShowDropdown(true);
               }}
-              placeholder={noApiKey ? 'Search unavailable (no API key)' : 'Search for a film...'}
-              disabled={noApiKey}
+              placeholder="Search for a film..."
+              maxLength={MAX_QUERY}
               style={{
                 width: '100%',
                 background: 'transparent',
@@ -375,6 +385,10 @@ export default function RecommendationForm() {
             className="cursor-target"
             placeholder="Leave a note with your recommendation? (No spoilers!)"
             rows={3}
+            /* The server caps the note at this length. Without the attribute
+               a longer note was accepted, silently truncated, and the visitor
+               was told it went through intact. */
+            maxLength={MAX_NOTE}
             style={{
               width: '100%',
               background: 'transparent',
@@ -422,7 +436,7 @@ export default function RecommendationForm() {
           {/* Submit button */}
           <TicketButton
             type="submit"
-            disabled={!selectedFilm || submitting || noApiKey}
+            disabled={!selectedFilm || submitting}
           >
             {submitting ? 'Submitting...' : 'Recommend It'}
           </TicketButton>

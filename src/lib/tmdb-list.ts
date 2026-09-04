@@ -26,13 +26,20 @@ interface TmdbListResponse {
   total_pages?: number;
 }
 
+/**
+ * Add a film to the public TMDB list.
+ *
+ * Returns whether anything was actually written. It used to return void and
+ * bail silently when the credentials were missing, which let the route answer
+ * 201 for a write that never happened.
+ */
 export async function addRecommendationToTmdbList(
   tmdbId: number,
   comment: string | null
-): Promise<void> {
+): Promise<boolean> {
   if (!TOKEN || !LIST_ID) {
     console.warn('[tmdb-list] TMDB_V4_TOKEN or TMDB_LIST_ID not set; skipping');
-    return;
+    return false;
   }
 
   const item: Record<string, unknown> = {
@@ -56,6 +63,8 @@ export async function addRecommendationToTmdbList(
     const text = await res.text().catch(() => '');
     throw new Error(`TMDB list add failed: ${res.status} ${text}`);
   }
+
+  return true;
 }
 
 export async function getRecommendationsFromTmdbList(): Promise<Recommendation[]> {

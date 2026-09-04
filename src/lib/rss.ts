@@ -59,7 +59,14 @@ export async function fetchLetterboxdFeed(
   const url = type === 'diary' ? DIARY_URL : WATCHLIST_URL;
 
   try {
-    const res = await fetch(url, { cache: 'no-store' });
+    /* Was `cache: 'no-store'`, which made the whole homepage dynamic: every
+       single page view re-fetched this feed and then fanned out to up to ten
+       TMDB lookups, with no timeout on any of them. A Letterboxd diary does
+       not change between two visitors a second apart. */
+    const res = await fetch(url, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(6000),
+    });
     if (!res.ok) return [];
     const xml = await res.text();
 
